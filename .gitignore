@@ -15,7 +15,7 @@ src2/tmp/*
 src3/tmp/*
 src2/secrets/*
 src3/secrets/*
-
+venv/*
 # Distribution / packaging
 .Python
 build/
