@@ -13,6 +13,8 @@ __pycache__/
 *.csv
 src2/tmp/*
 src3/tmp/*
+src2/secrets/*
+src3/secrets/*
 
 # Distribution / packaging
 .Python
