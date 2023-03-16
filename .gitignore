@@ -5,6 +5,9 @@ __pycache__/
 
 # C extensions
 *.so
+*.webm
+*.config 
+*.wav
 
 # Distribution / packaging
 .Python
