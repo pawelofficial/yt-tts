@@ -5,6 +5,16 @@ __pycache__/
 
 # C extensions
 *.so
+*.webm
+*.config 
+*.wav
+*.mp4
+*.mp3
+*.csv
+src2/tmp/*
+src3/tmp/*
+src2/secrets/*
+src3/secrets/*
 
 # Distribution / packaging
 .Python
