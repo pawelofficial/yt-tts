@@ -8,6 +8,11 @@ __pycache__/
 *.webm
 *.config 
 *.wav
+*.mp4
+*.mp3
+*.csv
+src2/tmp/*
+src3/tmp/*
 
 # Distribution / packaging
 .Python
