@@ -57,17 +57,35 @@ def unittest__download_subs():   # doesnt work -,-
     print(ytd.subs_fp)
     print(ytd.subs_exist)
     
+def unittest__check_available_subs_langs():   # doesnt work -,- 
+    url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
+    ytd,utils,yturl=set_ytd()
+    ytd.url=url                             # set url 
+    ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
+    ytd.check_available_subs_langs(lang='en')                      # download vid 
+    print(ytd.subs_fp)
+    print(ytd.subs_exist)
+    
 def unittest__parse_json3_to_df():
     ytd,utils,yturl=set_ytd()
-    j='200_Frozen_People_Found_in_The_Middle_of_a_Desert_and_The_Government_Decides_To_Keep_it_a_Secret.pl.json3'
+    j='They_Discovered_Advance_Tiny_Humans_Living_In_A_Fridge.pl.json3'
     json3_fp=utils.path_join('tests','tests_inputs',j)
     ytd.subs_fp=json3_fp
     ytd.parse_json3_to_df()
     print(ytd.subs_df)
+
+def unittest_get_chunk_of_subs():
+    ytd,utils,yturl=set_ytd()
+    j='They_Discovered_Advance_Tiny_Humans_Living_In_A_Fridge.pl.json3'
+    json3_fp=utils.path_join('tests','tests_inputs',j)
+    ytd.subs_fp=json3_fp
+    ytd.parse_json3_to_df()
+    d=ytd.get_chunks_of_subs()
+    
+
     
 def unittest__concat_overlapping_rows():
     ytd,utils,yturl=set_ytd()
-    
     fp=utils.path_join('tests','tests_inputs','tasmania_df.csv')
     ytd.subs_df=ytd.utils.read_df(fp=fp)    
     df=ytd.concat_overlapping_rows()
@@ -82,6 +100,7 @@ def unittest__concat_overlapping_rows():
     ###
         
 if __name__=='__main__':
+    unittest_get_chunk_of_subs()
     if 0:
         unittest__set_url()
         unittest__set_tmp_dir()
@@ -89,5 +108,5 @@ if __name__=='__main__':
     #unittest__download_vid()
 #    unittest__download_subs()
 #    unittest__parse_json3_to_df()
-    unittest__concat_overlapping_rows()
+#    unittest__concat_overlapping_rows()
  

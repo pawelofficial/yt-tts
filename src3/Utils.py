@@ -7,7 +7,7 @@ import pandas as pd
 import hashlib 
 import pydub 
 from moviepy.editor import VideoFileClip, AudioClip
-
+import cv2 
 class Utils:
     def __init__(self) -> None:
         self.current_dir=os.path.dirname(os.path.abspath(__file__))
@@ -110,11 +110,11 @@ class Utils:
     @staticmethod
     def clean_txt(s : str,**kwargs): # cleans up string 
         custom_d={k:v for k,v in kwargs.items()}
-        translation_table = str.maketrans({'\xa0': ' ', '\n': ' ', '\t': ' ', '\r': ' '})
+        translation_table = str.maketrans({'\xa0': ' ', '\n': ' ', '\t': ' ', '\r': ' ','\u200b':''})
         translation_table.update(custom_d)
         translation_table[ord("\n")] = " "
         clean_string = s.translate(translation_table)
-        return clean_string.strip()
+        return clean_string.strip().replace('  ',' ')
     
     @staticmethod
     def df_insert_d(df: pd.DataFrame, d : dict,clear_d=True ):
@@ -133,6 +133,15 @@ class Utils:
 #                os.rename(fp,fp+'_old_'+Utils().get_cur_ts())
         else:
             os.makedirs(fp)
+    @staticmethod 
+    def clean_dir(fp):
+        if os.path.exists(fp):
+            for file in os.listdir(fp):
+                os.remove(os.path.join(fp,file))
+        else:
+            print(f'no such directory {fp}')
+            
+            
             
     @staticmethod
     def dump_df(df,fp,name='df'):
@@ -167,9 +176,17 @@ class Utils:
                 row['txt']=func(row['txt'])
                 df.loc[no]=row
         def func(s):
+            return s.replace('  ',' ')
             s=s.capitalize()
             if s[-1]=='.':
                 return s 
             else:
                 return s+'.'    
         clear_df(df=df,func=func)
+        
+    @staticmethod
+    def get_vid_fps(vid_fp):
+        cap = cv2.VideoCapture(vid_fp)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        cap.release()
+        return fps 

@@ -3,9 +3,10 @@ import json
 import pandas as pd 
 import numpy as np 
 import re 
-
+import datetime
 import Utils 
 import ytURL
+import chardet 
 
 
 class ytDownloader:
@@ -38,6 +39,8 @@ class ytDownloader:
         return self._tmp_dir
     @tmp_dir.setter 
     def tmp_dir(self,dir):
+        if dir is None:
+            dir=datetime.datetime.now().strftime("%Y%m%d%H%M")
         self._tmp_dir = self.utils.path_join('tmp',dir)
         self.utils.make_dir(fp=self._tmp_dir) 
     @property 
@@ -62,14 +65,37 @@ class ytDownloader:
 
         self.utils.log_variable(logger=self.logger,msg='destination of video',returncode=returncode,stdout=stdout,stderr=stderr)
         
-        filename=title +f'.{format}'    
+        filename=title +f'.{format}'
+        filename=filename.replace('..','.')    
         vid_fp,meta=self.utils.path_join(self.tmp_dir,filename,meta=True)   # check if file exists 
         self.utils.log_variable(logger=self.logger,msg='downloading video ',filename=filename,meta=meta,returncode=returncode,stdout=stdout,stderr=stderr)
         
         self.vid_exists=meta['exists'] # update state variables 
+        self.vid_fp=vid_fp
+
         if meta['exists']:             
             self.subs_fp=vid_fp
-        
+            
+    # returns bool of whether lang is available and dictionary with available langs and formats 
+    def check_available_subs_langs(self,lang='en'):
+        vid_url=self.ytURL.vid_url
+        l=["yt-dlp","--skip-download",vid_url,"--list-subs"]    
+        returncode, stdout, stderr =self.utils.subprocess_run(l,logger=self.logger) 
+        langs_d={}
+        isavailable = False 
+        for line in stdout.splitlines():
+            if 'json3' not in line: # skip lines that do not specify language 
+                continue
+            line=[i.strip() for i in line.split(' ') if i!='']
+            lang=line[0]
+            lang_long=line[1] # not used 
+            formats_available=line[1:]
+            langs_d[lang]=[formats_available]
+        if lang in list(langs_d.keys()):
+            isavailable=True
+        self.utils.log_variable(logger=self.logger,msg='available subs',langs_d=langs_d)
+        return isavailable, langs_d
+            
     # download subs from yt 
     def download_subs(self,lang = 'pl', format='json3' ):
         vid_url=self.ytURL.vid_url
@@ -89,9 +115,9 @@ class ytDownloader:
         subs_fp,meta=self.utils.path_join(self.tmp_dir,filename,meta=True)   # check if file exists 
         self.utils.log_variable(logger=self.logger,msg='downloading subs ',filename=filename,meta=meta,returncode=returncode,stdout=stdout,stderr=stderr)
         
-        self.subs_exist=meta['exists'] # update state variables 
-        if meta['exists']:             
-            self.subs_fp=subs_fp
+#        self.subs_exist=meta['exists'] # update state variables 
+#        if meta['exists']:             
+        self.subs_fp=subs_fp
 
     # parses json 
     def _parse_json_pld(self,p,no):
@@ -152,7 +178,11 @@ class ytDownloader:
     def parse_json3_to_df(self):
         cols=['no','st','en','st_flt','en_flt','dif','pause_flt','txt']
         subs_d={k:None for k in cols}  
-        with open(self.subs_fp,'r',encoding="utf-8") as f:
+        with open(self.subs_fp,'rb') as f:
+            raw_data=f.read()
+        encoding=chardet.detect(raw_data)['encoding']
+        
+        with open(self.subs_fp,'r',encoding=encoding) as f:
             pld=json.load(f)['events']                  # read data to list 
         pld=[i for i in pld if 'segs' in i.keys()]      # remove items without text 
         tmp_df=pd.DataFrame(columns=subs_d.keys())      # declare temporary df 
@@ -166,26 +196,51 @@ class ytDownloader:
         self.subs_df=tmp_df                             # replace subs_df with new df 
 
     # concats df on condition function between current and previous row 
-    def concat_overlapping_rows(self,N=0):    
+    def concat_overlapping_rows(self,N=0,sentesize = False):    
         def func(prev_row,cur_row): # func summing cur row to previous row 
             prev_row['txt']=prev_row['txt']+' ' + cur_row['txt']
             prev_row['en_flt']=cur_row['en_flt']
             prev_row['en']=cur_row['en']
             return prev_row,cur_row,True
-        cond=lambda prev_row,cur_row  :  cur_row['st_flt']<prev_row['en_flt']+N
+        cond=lambda prev_row,cur_row  :  cur_row['st_flt']<=prev_row['en_flt']+N
         
+        self.subs_df=self._concat_on_condition(df=self.subs_df,cond=cond,func=func)
+        if sentesize:
+            self.utils.sentesize(df=self.subs_df)
+        self._calculate_pause_to_next(df=self.subs_df)
+    # concats df on more or less N secondy chunks 
+    def concat_on_time(self,N=60):
+        def func(prev_row,cur_row): # func summing cur row to previous row 
+            prev_row['txt']=prev_row['txt']+' ' + cur_row['txt']
+            prev_row['en_flt']=cur_row['en_flt']
+            prev_row['en']=cur_row['en']
+            return prev_row,cur_row,True
+        cond=lambda prev_row,cur_row  :  cur_row['st_flt']//N== prev_row['st_flt']//N
         self.subs_df=self._concat_on_condition(df=self.subs_df,cond=cond,func=func)
         self.utils.sentesize(df=self.subs_df)
         self._calculate_pause_to_next(df=self.subs_df)
 
-
+    # returns dictionary with chunks of text aggregated to more or less N second lengths 
+    def get_chunks_of_subs(self,N=5*60): 
+        msk=self.subs_df['en_flt']//N         
+        l=list(set(msk.to_list()))
+        chunks_d={}
+        for i in l:
+            msk=self.subs_df['en_flt']//N==i
+            st_flt=min(self.subs_df['st_flt'][msk])
+            en_flt=max(self.subs_df['en_flt'][msk])
+            s=' '.join(self.subs_df['txt'][msk].to_list())
+            s=self.utils.clean_txt(s)
+        
+            chunks_d[str(int(i))]={'st_flt':st_flt,'en_flt':en_flt,'chunk':s}
+            #print(chunks_d[str(int(i))])
+        return chunks_d
+        
+        
+        
+    
+        
 
 if __name__=='__main__':
-    url='https://www.youtube.com/watch?v=RMeacmRH0wA&ab_channel=symmetry'
-    utils=Utils.Utils()
-    yturl=ytURL.ytURL()
-    ytd=ytDownloader(utils=utils,ytURL=yturl)
+    pass
     
-    ytd.url=url
-    ytd.tmp_dir='tests'
-    ytd.download_subs(lang='en')

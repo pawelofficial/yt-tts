@@ -33,12 +33,15 @@ class TestvidMaker(unittest.TestCase):
     def test_cut_audio(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
         self.vm.media_fp='vm_test_input_audio.wav'
+        
         out_dir_fp = self.vm.utils.path_join('tests','tests_outputs')
         self.vm.cut_media(isaudio=True,output_dir_fp=out_dir_fp)
 
     def test_slowdown_vid_ending(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
         self.vm.media_fp='vm_test_slowdown_vid_ending2.webm'
+        self.vm.media_fp='THEY_DISCOVERED_ADVANCE_TINY_HUMANS_LIVING_IN_A_FRIDGE.webm'
+        
         out_dir_fp = self.vm.utils.path_join('tests','tests_outputs')
         self.vm.slowdown_vid_ending(output_dir_fp=out_dir_fp)
 
@@ -55,10 +58,55 @@ class TestvidMaker(unittest.TestCase):
         background_fname='test_input_background.wav'
         self.vm.add_background_to_audio(output_dir_fp=out_dir_fp,
                                         background_fname=background_fname)
+        
+    def test_concat_audios(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        fp1=self.vm.utils.path_join(self.vm.tmp_dir,'vm_test_speech.wav')
+        fp2=self.vm.utils.path_join(self.vm.tmp_dir,'vm_test_input_audio.wav')
+        audio_fps=[fp1,fp2]
+        self.vm.concat_audios(audios_fps=audio_fps,output_fname='concat_audio_test.wav')
+        
+    def test_concat_ffmpeg(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        fp1=self.vm.utils.path_join(self.vm.tmp_dir,'vm_test_speech.wav')
+        fp2=self.vm.utils.path_join(self.vm.tmp_dir,'vm_test_input_audio.wav')
+        audio_fps=[fp1,fp2]
+        self.vm.concat_streams_ffmpg(fps=audio_fps,output_fname='concat_streams_ffmpeg.wav')
+        
+    def test_concat_audio_video_ffmpeg(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        fp1=self.vm.utils.path_join(self.vm.tmp_dir,'vm_test_speech.wav')
+        fp2=self.vm.utils.path_join(self.vm.tmp_dir,'freeze_vid_input2.webm')
+        self.vm.concat_audio_and_video(audio_fp=fp1,vid_fp=fp2,output_fname='movie3.webm',tmp_dir=self.vm.tmp_dir)
+        
+        
+    def test_freeze_frames_linearly(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
+        f='THEY_DISCOVERED_ADVANCE_TINY_HUMANS_LIVING_IN_A_FRIDGE.webm'
+        f='freeze_vid_input2.webm'
+        fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
+
+        self.vm.media_fp=fp1
+        #self.vm.cut_media(st_flt=0,en_flt=30,isvideo=True,output_fname='freeze_vid_input2.webm')
+        self.vm.freeze_frames_linearly_wrapper(vid_fp=fp1
+                                       ,output_fname='freeze_vids_output.webm'
+                                       ,tmp_dir_fp=vids_dir)
+        
+        
+        
+    def test_concat_vids(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        fp1=self.vm.utils.path_join(self.vm.tmp_dir,'vm_test_input_vid.webm')
+        fp2=self.vm.utils.path_join(self.vm.tmp_dir,'vm_test_input_vid.webm')
+        vids_fps=[fp1,fp2]
+        self.vm.concat_vids(vids_fps=vids_fps,output_fname='concat_vids_test.webm',
+                            add_pause_sec=1)
+        
 
 if __name__ == '__main__':
     t=TestvidMaker()
-    t.test_add_background_to_audio()
+    t.test_slowdown_vid_ending()
 #    t.test_add_silence
 #    t.test_tmp_dir()
 #    t.test_media_fp()
