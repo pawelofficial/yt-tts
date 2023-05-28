@@ -7,13 +7,25 @@ import datetime
 import Utils 
 import ytURL
 import chardet 
+import sys 
+import punctuate as rpunct
+from multiprocessing import Process, freeze_support
 
+# if __name__=='__main__':
+#     freeze_support()
+#     rp=rpunct.RestorePuncts()
+#     s='hello world how are you doing today i am fine thank you for asking the weather is great dont you think yesterday it was raining but now it is sunny and i am happy how about you do you think today is a good day or more like a regular everyday normal day as always my brother in christ'
+#     x=rp.punctuate(s)
+#     print(x)
+#     x=rp.punctuate_twice(s)
+#     print(x)
+#     exit(1)
 
 class ytDownloader:
     def __init__(self,utils,ytURL):               
         self.utils=utils
         self.ytURL   = ytURL       # attribute for youtube url with some other stuff behind it 
-        self._url    = None        # url provided by user 
+        self._url    = None        # url provided by user  
         self._tmp_dir = None       # tmp directory      
         self._logger  = None       # logger 
         
@@ -28,6 +40,7 @@ class ytDownloader:
         self.subs_df_exist = False  # set by parse subs 
         self.subs_df_fp    = None   # set by parse subs 
         self.subs_df       = None   # actual subs df 
+        self.rp=rpunct.RestorePuncts()
 
     @property 
     def url(self):
@@ -236,6 +249,9 @@ class ytDownloader:
         self.subs_df=self._concat_on_condition(df=self.subs_df,cond=cond,func=func)
         self.utils.sentesize(df=self.subs_df)
         self._calculate_pause_to_next(df=self.subs_df)
+        
+        
+        
     def concat_to_line(self):
         def func(prev_row,cur_row): # func summing cur row to previous row 
             prev_row['txt']=prev_row['txt']+' ' + cur_row['txt']
@@ -264,7 +280,19 @@ class ytDownloader:
             #print(chunks_d[str(int(i))])
         return chunks_d
         
-        
+    def punctuate_df(self,df=None, input_col='txt',output_col='txt_punct'):
+        punctuated_txt=[]
+        if df is None:
+            df = self.subs_df
+        for no,row in df.iterrows():
+            txt=row[input_col]
+            txt_punct=self.rp.punctuate(txt)
+            punctuated_txt.append(txt_punct)
+#            df.at[no,output_col]=txt_punct
+#            print(txt)
+#            print(txt_punct)
+        self.subs_df[output_col]=punctuated_txt
+   
         
     
         

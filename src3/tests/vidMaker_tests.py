@@ -154,7 +154,7 @@ class TestvidMaker(unittest.TestCase):
 if __name__ == '__main__':
     tm=time.time()
     t=TestvidMaker()
-    t.test_match_audio_len_to_vid_audio()
+    t.test_concat_audios()
 #    t.test_freeze_frames_linearly()
     print(f'time: {time.time()-tm}')
 #    t.test_add_silence

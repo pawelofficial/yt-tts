@@ -3,6 +3,7 @@ import json
 import pandas as pd 
 import numpy as np 
 import re 
+import requests, uuid, json
 
 import Utils 
 import ytURL
@@ -19,7 +20,7 @@ class azureTTS:
         self._xml_txt   = None                  # xml string 
         self._lang = None               # lang, must be present in lang_names 
         self._txt = None                 # txt in xml 
-        self._rate=0.90                 # rate in xml
+        self._rate=1.1                 # rate in xml
         #self.logger='azureTTS_logger'
         
         # dummy text if you need a dummy text for something 
@@ -41,10 +42,68 @@ class azureTTS:
         self.tts_df = None                      # set by tts_df 
         self.out_dir_fp = None 
         
+        self.translator_config=None
+        
+    def _setup_translator_config(self):
+        self.translator_config = self.config['translator'] 
+        
+
+            
+    
+    def translate(self,src_lang='en',tgt_lang='pl',df = None, text_column='txt',output_col=None):
+        if df is None:
+            print('gotta provide df fren')
+            raise
+        if output_col is None:
+            output_col=f'{text_column}_{tgt_lang}'
+    
+        self._setup_translator_config()
+        
+        key=self.translator_config['key1']
+        endpoint=self.translator_config['endpoint'] 
+        location = self.translator_config['region'] 
+        path = '/translate'
+        constructed_url = endpoint + path
+        params = {
+                'api-version': '3.0',
+                'from': src_lang,
+                'to': [tgt_lang]
+                }
+        headers = {
+                    'Ocp-Apim-Subscription-Key': key,
+                    # location required if you're using a multi-service or regional (not global) resource.
+                    'Ocp-Apim-Subscription-Region': location,
+                    'Content-type': 'application/json',
+                    'X-ClientTraceId': str(uuid.uuid4())
+                    }
+        body = [{
+                'text': 'I would really like to drive your car around the block a few times and then marry you!'
+                }
+                ]
+
+        body = [{'text': text} for text in df[text_column]]
+        request = requests.post(constructed_url, params=params, headers=headers, json=body)
+        response = request.json()
+        
+        translated_text=[]
+        raw_data=json.loads(json.dumps(response, sort_keys=True, ensure_ascii=False, indent=4, separators=(',', ': ')))
+
+        for d in raw_data:
+            print(d)
+            txt=d['translations'][0]['text']
+            translated_text.append(txt)
+        
+
+#        colname=f'{text_column}_{tgt_lang}'
+        df[output_col] = translated_text
+
+
+# Conv        
+
         
     # sets up speech config 
     def _setup_speech_config(self):
-        self.speech_config = sdk.SpeechConfig(subscription=self.config['key1'], region=self.config['region'])
+        self.speech_config = sdk.SpeechConfig(subscription=self.config['tts']['key1'], region=self.config['tts']['region'])
         self.speech_config.speech_synthesis_voice_name=self.lang_names[self.lang]
         
     # sets up audio config and wav_fp if it's for tts 
@@ -115,7 +174,7 @@ class azureTTS:
     # loops through df column and dumps .wav files 
     def tts_from_df(self,df,colname='txt',N=999):
         for no,row in df.iterrows():
-            s=row['txt']
+            s=row[colname]
             #print(s)
             fname=self.utils.hash(s)+'.wav'
             self.tts(fname=fname,s=s)
@@ -193,11 +252,14 @@ if __name__=='__main__':
     utils=Utils.Utils()
     a=azureTTS(utils)
     a.config='azure.json'
+    a.translate()
+    
+#    a.talk()
 
-    a.tmp_dir=a.utils.path_join('tmp','tmp','outputs')
-    fp=a.utils.path_join('tmp','tmp','belang1.csv')
-    df=a.utils.read_df(fp=fp)
-    a.tts_from_df(df=df)
+#    a.tmp_dir=a.utils.path_join('tmp','tmp','outputs')
+#    fp=a.utils.path_join('tmp','tmp','belang1.csv')
+#    df=a.utils.read_df(fp=fp)
+#    a.tts_from_df(df=df)
 
     
     

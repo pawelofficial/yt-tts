@@ -7,7 +7,7 @@ import pandas as pd
 import hashlib 
 import pydub 
 from moviepy.editor import VideoFileClip, AudioClip
-import cv2 
+#import cv2 
 class Utils:
     def __init__(self) -> None:
         self.current_dir=os.path.dirname(os.path.abspath(__file__))
@@ -188,9 +188,9 @@ class Utils:
                 return s+'.'    
         clear_df(df=df,func=func)
         
-    @staticmethod
-    def get_vid_fps(vid_fp):
-        cap = cv2.VideoCapture(vid_fp)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        cap.release()
-        return fps 
+#    @staticmethod
+#    def get_vid_fps(vid_fp):
+#        cap = cv2.VideoCapture(vid_fp)
+#        fps = cap.get(cv2.CAP_PROP_FPS)
+#        cap.release()
+#        return fps 

@@ -11,7 +11,6 @@ import pydub
 from moviepy.editor import VideoFileClip, AudioClip
 import matplotlib.pyplot as plt 
 import time 
-import cv2 
 import Utils 
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 

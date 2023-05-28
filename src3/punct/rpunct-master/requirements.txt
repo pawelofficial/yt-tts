@@ -1,0 +1,7 @@
+langdetect==1.0.9
+pandas==1.2.4
+simpletransformers==0.61.4
+six==1.16.0
+torch==1.8.1
+click==7.1.2
+tqdm==4.49.0

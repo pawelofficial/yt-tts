@@ -14,6 +14,7 @@ class TestAzureTTS(unittest.TestCase):
 #    def setUp(self):
         self.utils = Utils()
         self.azure_tts = azureTTS(self.utils)
+        self.azure_tts.config='azure.json'
 
     def test_tmp_dir(self):
         self.azure_tts.tmp_dir = "test_dir"
@@ -49,6 +50,17 @@ class TestAzureTTS(unittest.TestCase):
         self.azure_tts.tmp_dir=self.utils.path_join('tests','tests_outputs')
 
         self.azure_tts.tts_from_df(df=df)
+        
+    def test_translate(self):
+        fp=self.utils.path_join('tests','tests_inputs','subs_df_en.csv')
+        
+        subs_df=self.utils.read_df(fp=fp)
+        self.azure_tts.translate(df=subs_df,text_column='txt')
+        out_dir=self.utils.path_join('tests','tests_outputs')
+        self.azure_tts.utils.dump_df(df=subs_df,fp=out_dir,name='subs_df_pl')
+        print(subs_df)
+        
+        
 
 
 
@@ -56,6 +68,6 @@ if __name__ == '__main__':
 #    utils=Utils()
 #    a=azureTTS(utils=utils)
     t=TestAzureTTS()
-    t.test_tts_df()
+    t.test_translate()
 #    unittest.main()
 #

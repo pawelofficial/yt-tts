@@ -50,19 +50,19 @@ def unittest__download_vid_with_timestamps():   # doesnt work -,-
     timestamps=['00:00:30','00:01:00']      # "00:00:00","00:1:00
     ytd.download_vid()                      # download vid 
 
-def unittest__download_subs(lang='pl-pl'):   # doesnt work -,- 
+def unittest__download_subs(lang='en-en'):   # doesnt work -,- 
     url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
-    url='https://www.youtube.com/watch?v=BsNP5ygW-AM&ab_channel=UMCS'
     ytd,utils,yturl=set_ytd()
     ytd.url=url                             # set url 
     ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
     ytd.download_subs(lang=lang)                      # download vid 
     ytd.parse_json3_to_df()
+    ytd.concat_overlapping_rows()
     ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name='subs_df')
     
 def unittest__check_available_subs_langs(lang='pl'):   # doesnt work -,- 
     url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
-    url='https://www.youtube.com/watch?v=BsNP5ygW-AM&ab_channel=UMCS'
+    url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
     ytd,utils,yturl=set_ytd()
     ytd.url=url                             # set url 
     ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
@@ -115,15 +115,21 @@ def unittest__download_and_aggregate(lang='en'):
     ytd.download_subs(lang=lang)                      # download vid 
     ytd.parse_json3_to_df()
     ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name=ytd.vid_title)
-    ytd.concat_on_time()
+    ytd.concat_on_time(N=60)
     ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name=f'time_{ytd.vid_title}')
     print(ytd.subs_df)
 
+def unittest__punctuate_df(col='txt'):
+    ytd,utils,yturl=set_ytd()
+    ytd.tmp_dir=ytd.utils.path_join('tests','tests_inputs')      # set tmp dir
+    ytd.subs_df=ytd.utils.read_df(fp=ytd.utils.path_join(ytd.tmp_dir,'subs_df_en.csv'))
+    ytd.punctuate_df()
+    ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name='subs_df_en_punctuated')
     
 
-
 if __name__=='__main__':
-    unittest__download_vid()
+#    unittest__download_and_aggregate()
+    unittest__punctuate_df()
     exit(1)
     unittest__check_available_subs_langs()
     unittest__download_subs()
