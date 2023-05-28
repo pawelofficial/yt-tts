@@ -55,6 +55,8 @@ if __name__=='__main__':
         vm=vm_(utils())
         vm.tmp_dir=vm.utils.path_join(ytd.tmp_dir,'videos')
         combined_audio=vm.concat_audios(audios_fps=tts_df['wav_fp'].tolist(), output_fname='combined.wav')
+        combined_audio_fp=vm.utils.path_join(vm.tmp_dir,'combined_mathed.wav')
+        combined_audio_matched,_=vm.match_audio_len_to_video_exactly(audio_fp=combined_audio,vid_fp=vid_fp,audio_out_fp=combined_audio_fp)
 
 
         nsec=2

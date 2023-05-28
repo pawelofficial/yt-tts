@@ -104,11 +104,25 @@ class TestvidMaker(unittest.TestCase):
         self.vm.concat_audio_and_video(audio_fp=fp1,vid_fp=fp2,output_fname='movie3.webm',tmp_dir=self.vm.tmp_dir)
         
         
+    def test_extract_sound_from_vid(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        vid_fp=self.vm.utils.path_join(self.vm.tmp_dir,'Russian_Streetlifter_Tests_His_Benchwebm.webm')
+        out_fp=self.vm.utils.path_join('tests','tests_inputs','test_match_audio_len_to_vid_audio.wav')
+        self.vm._extract_sound_from_vid(vid_fp=vid_fp,out_fp=out_fp)
+        
+    def test_match_audio_len_to_vid_audio(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        audio_fp=self.vm.utils.path_join(self.vm.tmp_dir,'test_match_audio_len_to_vid_audio_input.wav')
+        vid_fp=self.vm.utils.path_join(self.vm.tmp_dir,'test_match_audio_len_to_vid_video.webm')
+        out_fp=self.vm.utils.path_join('tests','tests_outputs','test_match_audio_len_to_audio_output.wav')
+        fp,_ = self.vm.match_audio_len_to_video_exactly(audio_fp=audio_fp,vid_fp=vid_fp,audio_out_fp=out_fp)
+        print(_)
+        
     def test_freeze_frames_linearly(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
         vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
         f='THEY_DISCOVERED_ADVANCE_TINY_HUMANS_LIVING_IN_A_FRIDGE.webm'
-        f='freeze_vid_input2.webm'
+        f='Russian_Streetlifter_Tests_His_Benchwebm.webm'
         fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
         self.vm.media_fp=fp1
         out_fp=self.vm.utils.path_join('tests','tests_outputs','freeze_frames_lin2.webm')
@@ -123,7 +137,7 @@ class TestvidMaker(unittest.TestCase):
         out=self.vm.freeze_frames_linearly2(vid_fp=self.vm.media_fp
                                         ,out_fp=out_fp
                                         ,tmp_dir_fp=tmp_dir
-                                        ,N=7,nsec=1)
+                                        ,N=5,nsec=1)
         
         print(out)
         
@@ -140,7 +154,8 @@ class TestvidMaker(unittest.TestCase):
 if __name__ == '__main__':
     tm=time.time()
     t=TestvidMaker()
-    t.test_freeze_frames_linearly()
+    t.test_match_audio_len_to_vid_audio()
+#    t.test_freeze_frames_linearly()
     print(f'time: {time.time()-tm}')
 #    t.test_add_silence
 #    t.test_tmp_dir()

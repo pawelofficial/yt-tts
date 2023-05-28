@@ -36,6 +36,7 @@ def unittest__set_logger(): # put into unittests
 def unittest__download_vid():
     url='https://www.youtube.com/watch?v=wVvhBr64odI&ab_channel=LiftingVault'
     url='https://www.youtube.com/watch?v=BsNP5ygW-AM&ab_channel=UMCS'
+    url='https://www.youtube.com/watch?v=hA02sLRC2KA&ab_channel=LiftingVault'
     ytd,utils,yturl=set_ytd()
     ytd.url=url                             # set url 
     ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
@@ -122,6 +123,8 @@ def unittest__download_and_aggregate(lang='en'):
 
 
 if __name__=='__main__':
+    unittest__download_vid()
+    exit(1)
     unittest__check_available_subs_langs()
     unittest__download_subs()
 #    unittest__download_vid()

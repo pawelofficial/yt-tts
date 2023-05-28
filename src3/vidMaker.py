@@ -325,10 +325,31 @@ class vidMaker:
         self.utils.subprocess_run(l=l)
         return self.output_fp
         
-    
+    # duplicates frames of audio tensor to match the total len to the video 
     def match_audio_len_to_video_exactly(self,vid_fp,audio_fp,audio_out_fp):
+        def stretch_audio(audio, stretch_factor):
+            """Stretches an audio signal by duplicating frames."""
+            num_frames = audio.shape[-1]
+            expanded_num_frames = int(num_frames * stretch_factor)
+            indices = (torch.arange(expanded_num_frames) / stretch_factor).long()
+            stretched_audio = audio[..., indices]
+            return stretched_audio
         # match audio len to video len exactly  
-        pass 
+        vid_len=self.get_media_len(fp=vid_fp)
+        audio_len=self.get_media_len(fp=audio_fp)
+
+        waveform, rate_of_sample = torchaudio.load(audio_fp)
+        
+        stretch_factor = vid_len / audio_len
+        if abs(1-stretch_factor)>0.05:
+            print('watch out buster, your stretch factor is pretty big!')
+        
+        stretched_waveform = stretch_audio(waveform, stretch_factor)
+    
+        torchaudio.save(audio_out_fp, stretched_waveform,rate_of_sample)
+
+        new_len=self.get_media_len(fp=audio_out_fp)
+        return audio_out_fp ,(vid_len, audio_len, new_len) 
         
     def wrapper_freeze_frames_linearly2(self,vid_fp,out_fp,nsec=1,N=10,tmp_dir=None):
         # first splits up original video to smaller chunks so i dont run out of memory in pytorch 
@@ -448,10 +469,16 @@ class vidMaker:
     
     
     # extracts sound from video 
-    def _extract_sound_from_vid(self):
-        l=['-i',f'{self.media_fp}','-q:a','0','-map','a',f'{self.out_fp}']
-        l=self._ffmpeg + l     
-        self.subprocess_run(l=l)
+    def _extract_sound_from_vid(self,vid_fp=None, out_fp=None):
+        ffmpeg=[f"{self._ffmpeg_path}ffmpeg",'-y'] # ffmpeg executable  
+        
+        if out_fp is None:
+            out_fp=self.out_fp
+        if vid_fp is None:
+            vid_fp=self.media_fp
+        l=['-i',f'{vid_fp}','-q:a','0','-map','a',f'{out_fp}']
+        l=ffmpeg + l     
+        self.utils.subprocess_run(l=l)
 
     @property 
     def media_fp(self):
