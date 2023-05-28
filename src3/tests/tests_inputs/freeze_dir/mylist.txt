@@ -1,0 +1,8 @@
+file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\0_vid_.webm'
+file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\1_vid_.webm'
+file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\2_vid_.webm'
+file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\3_vid_.webm'
+file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\4_vid_.webm'
+file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\5_vid_.webm'
+file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\6_vid_.webm'
+file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\7_vid_.webm'

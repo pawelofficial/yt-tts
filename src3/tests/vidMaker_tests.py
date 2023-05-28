@@ -1,6 +1,7 @@
 import sys
 import os.path
 import json 
+import time 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 import unittest
@@ -23,12 +24,35 @@ class TestvidMaker(unittest.TestCase):
         self.vm.media_fp='foo'
 
 
+    def test_cut_vid_ffmpeg(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        self.vm.media_fp= 'vm_test_input_vid.webm'#  'vm_test_input_vid.webm'
+        
+        out_fp = self.vm.utils.path_join('tests','tests_outputs','cut_vid_ffmpeg.webm')
+        #start_time = time.time()
+        out=self.vm.cut_vid_ffmpeg(vid_fp=self.vm.media_fp,out_fp=out_fp,prc=0.5)
+        #print(f' cutting took {time.time()-start_time}' )
+        print(out )
+
+
+    def test_cut_vid_moviepy(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        self.vm.media_fp= 'vm_test_input_vid.webm'#  'vm_test_input_vid.webm'
+        
+        out_fp = self.vm.utils.path_join('tests','tests_outputs','cut_vid_ffmpeg.webm')
+        #start_time = time.time()
+        out=self.vm.cut_vid_moviepy(vid_fp=self.vm.media_fp,out_fp=out_fp,prc=0.5)
+        #print(f' cutting took {time.time()-start_time}' )
+        #print(out )
+
+
     def test_cut_vid(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
-        self.vm.media_fp='vm_test_input_vid.webm'
+        self.vm.media_fp= 'big_vid.webm'#  'vm_test_input_vid.webm'
         
         out_dir_fp = self.vm.utils.path_join('tests','tests_outputs')
-        self.vm.cut_media(isvideo=True,output_dir_fp=out_dir_fp)
+        out=self.vm.cut_media(isvideo=True,output_dir_fp=out_dir_fp,prc=0.5)
+        print(out )
         
     def test_cut_audio(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
@@ -86,13 +110,22 @@ class TestvidMaker(unittest.TestCase):
         f='THEY_DISCOVERED_ADVANCE_TINY_HUMANS_LIVING_IN_A_FRIDGE.webm'
         f='freeze_vid_input2.webm'
         fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
-
         self.vm.media_fp=fp1
+        out_fp=self.vm.utils.path_join('tests','tests_outputs','freeze_frames_lin2.webm')
+        tmp_dir=self.vm.utils.path_join('tests','tests_inputs','freeze_dir')
+
+
         #self.vm.cut_media(st_flt=0,en_flt=30,isvideo=True,output_fname='freeze_vid_input2.webm')
-        self.vm.freeze_frames_linearly_wrapper(vid_fp=fp1
-                                       ,output_fname='freeze_vids_output.webm'
-                                       ,tmp_dir_fp=vids_dir)
+        #freezed_fp=self.vm.freeze_frames_linearly(vid_fp=fp1
+        #                               ,output_fname='freeze_vids_output.webm'
+        #                               ,tmp_dir_fp=vids_dir)
+        #
+        out=self.vm.freeze_frames_linearly2(vid_fp=self.vm.media_fp
+                                        ,out_fp=out_fp
+                                        ,tmp_dir_fp=tmp_dir
+                                        ,N=7,nsec=1)
         
+        print(out)
         
         
     def test_concat_vids(self):
@@ -105,8 +138,10 @@ class TestvidMaker(unittest.TestCase):
         
 
 if __name__ == '__main__':
+    tm=time.time()
     t=TestvidMaker()
-    t.test_slowdown_vid_ending()
+    t.test_freeze_frames_linearly()
+    print(f'time: {time.time()-tm}')
 #    t.test_add_silence
 #    t.test_tmp_dir()
 #    t.test_media_fp()

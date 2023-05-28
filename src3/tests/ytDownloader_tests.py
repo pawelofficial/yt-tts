@@ -35,6 +35,7 @@ def unittest__set_logger(): # put into unittests
     
 def unittest__download_vid():
     url='https://www.youtube.com/watch?v=wVvhBr64odI&ab_channel=LiftingVault'
+    url='https://www.youtube.com/watch?v=BsNP5ygW-AM&ab_channel=UMCS'
     ytd,utils,yturl=set_ytd()
     ytd.url=url                             # set url 
     ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
@@ -48,23 +49,26 @@ def unittest__download_vid_with_timestamps():   # doesnt work -,-
     timestamps=['00:00:30','00:01:00']      # "00:00:00","00:1:00
     ytd.download_vid()                      # download vid 
 
-def unittest__download_subs():   # doesnt work -,- 
+def unittest__download_subs(lang='pl-pl'):   # doesnt work -,- 
     url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
+    url='https://www.youtube.com/watch?v=BsNP5ygW-AM&ab_channel=UMCS'
     ytd,utils,yturl=set_ytd()
     ytd.url=url                             # set url 
     ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
-    ytd.download_subs()                      # download vid 
-    print(ytd.subs_fp)
-    print(ytd.subs_exist)
+    ytd.download_subs(lang=lang)                      # download vid 
+    ytd.parse_json3_to_df()
+    ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name='subs_df')
     
-def unittest__check_available_subs_langs():   # doesnt work -,- 
+def unittest__check_available_subs_langs(lang='pl'):   # doesnt work -,- 
     url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
+    url='https://www.youtube.com/watch?v=BsNP5ygW-AM&ab_channel=UMCS'
     ytd,utils,yturl=set_ytd()
     ytd.url=url                             # set url 
     ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
-    ytd.check_available_subs_langs(lang='en')                      # download vid 
-    print(ytd.subs_fp)
-    print(ytd.subs_exist)
+    isavailable,langs_d=ytd.check_available_subs_langs(lang=lang)                      # download vid 
+    print(isavailable)
+    print(langs_d.keys())
+
     
 def unittest__parse_json3_to_df():
     ytd,utils,yturl=set_ytd()
@@ -98,9 +102,32 @@ def unittest__concat_overlapping_rows():
     ###    fp=utils.path_join('tests','tests_outputs')
     ###    ytd.utils.dump_df(df=ytd.subs_df,fp=fp,name='tasmania_df_parsed_10s')
     ###
-        
+
+def unittest__download_and_aggregate(lang='en'):
+    url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
+    url='https://www.youtube.com/watch?v=jZ3d415TAas&ab_channel=belangp'
+    ytd,utils,yturl=set_ytd()
+
+    
+    ytd.url=url                             # set url 
+    ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
+    ytd.download_subs(lang=lang)                      # download vid 
+    ytd.parse_json3_to_df()
+    ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name=ytd.vid_title)
+    ytd.concat_on_time()
+    ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name=f'time_{ytd.vid_title}')
+    print(ytd.subs_df)
+
+    
+
+
 if __name__=='__main__':
-    unittest_get_chunk_of_subs()
+    unittest__check_available_subs_langs()
+    unittest__download_subs()
+#    unittest__download_vid()
+#    unittest__set_tmp_dir()
+#    unittest__download_and_aggregate()
+#    unittest_get_chunk_of_subs()
     if 0:
         unittest__set_url()
         unittest__set_tmp_dir()

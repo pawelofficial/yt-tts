@@ -94,7 +94,7 @@ class Utils:
         return q.returncode,q.stdout,q.stderr # returncode, stdout, stderr 
         
     @staticmethod
-    def get_cur_ts(format="%Y%m%d%H"):
+    def get_cur_ts(format="%Y%m%d%H%M%S"):
         return datetime.datetime.now().strftime(format) # "%Y%m%d%H%M" format for minutes
     
     @staticmethod
@@ -150,8 +150,12 @@ class Utils:
         df.to_csv(path_or_buf=fp,sep='|',quoting=1,mode='w',index=False)
     
     @staticmethod
-    def read_df(fp):
+    def read_df(fp,**kwargs):
+        fp=os.path.join(fp,*[str(x) for x in kwargs.values()])
         return pd.read_csv(fp,sep='|',quoting=1,index_col=0)
+
+
+
 
     @staticmethod 
     def hash(s):

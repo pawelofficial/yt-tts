@@ -19,7 +19,7 @@ class azureTTS:
         self._xml_txt   = None                  # xml string 
         self._lang = None               # lang, must be present in lang_names 
         self._txt = None                 # txt in xml 
-        self._rate=1.05                  # rate in xml
+        self._rate=0.90                 # rate in xml
         #self.logger='azureTTS_logger'
         
         # dummy text if you need a dummy text for something 
@@ -31,6 +31,7 @@ class azureTTS:
         self.lang_names={'pl':'pl-PL-MarekNeural'
                            ,'de':'de-AT-JonasNeural' # https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support?tabs=tts
                            ,'en':'en-CA-LiamNeural'} #
+        self.lang='pl' # default lang 
         
         self.logger='azureTTS_logger'
         self.speech_config = None 
@@ -115,7 +116,7 @@ class azureTTS:
     def tts_from_df(self,df,colname='txt',N=999):
         for no,row in df.iterrows():
             s=row['txt']
-            print(s)
+            #print(s)
             fname=self.utils.hash(s)+'.wav'
             self.tts(fname=fname,s=s)
             df.loc[no,'fname']=fname
@@ -155,6 +156,7 @@ class azureTTS:
     @tmp_dir.setter 
     def tmp_dir(self,dir):
         self._tmp_dir = self.utils.path_join('tmp',dir)
+        print(dir)
         self.utils.make_dir(fp=self._tmp_dir) 
     @property 
     def logger(self):
@@ -191,9 +193,9 @@ if __name__=='__main__':
     utils=Utils.Utils()
     a=azureTTS(utils)
     a.config='azure.json'
-    a.lang='en'
-    a.tmp_dir=a.utils.path_join('tests','tests_outputs')
-    fp=a.utils.path_join('tests','tests_inputs','tts_df.csv')
+
+    a.tmp_dir=a.utils.path_join('tmp','tmp','outputs')
+    fp=a.utils.path_join('tmp','tmp','belang1.csv')
     df=a.utils.read_df(fp=fp)
     a.tts_from_df(df=df)
 

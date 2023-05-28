@@ -22,6 +22,8 @@ class ytDownloader:
         self.subs_fp=None           # set by download_subs 
         self.vid_exist=False       # set by download_vid
         self.vid_fp=None           # set by download_vid
+        self.vid_title=None
+        self.tmp_dir=None
 
         self.subs_df_exist = False  # set by parse subs 
         self.subs_df_fp    = None   # set by parse subs 
@@ -39,8 +41,8 @@ class ytDownloader:
         return self._tmp_dir
     @tmp_dir.setter 
     def tmp_dir(self,dir):
-        if dir is None:
-            dir=datetime.datetime.now().strftime("%Y%m%d%H%M")
+        if dir is None:                                         # if variable was not set 
+            dir=datetime.datetime.now().strftime("%Y%m%d%H")
         self._tmp_dir = self.utils.path_join('tmp',dir)
         self.utils.make_dir(fp=self._tmp_dir) 
     @property 
@@ -75,9 +77,10 @@ class ytDownloader:
 
         if meta['exists']:             
             self.subs_fp=vid_fp
+        return vid_fp
             
     # returns bool of whether lang is available and dictionary with available langs and formats 
-    def check_available_subs_langs(self,lang='en'):
+    def check_available_subs_langs(self,lang):
         vid_url=self.ytURL.vid_url
         l=["yt-dlp","--skip-download",vid_url,"--list-subs"]    
         returncode, stdout, stderr =self.utils.subprocess_run(l,logger=self.logger) 
@@ -87,22 +90,37 @@ class ytDownloader:
             if 'json3' not in line: # skip lines that do not specify language 
                 continue
             line=[i.strip() for i in line.split(' ') if i!='']
-            lang=line[0]
+            ytlang=line[0]
             lang_long=line[1] # not used 
             formats_available=line[1:]
-            langs_d[lang]=[formats_available]
-        if lang in list(langs_d.keys()):
-            isavailable=True
+            langs_d[ytlang]=[formats_available]
+        isavailable=any([lang == k for k in langs_d.keys()]) # check if lang is available
+#        for k,v in langs_d.items():
+#            if lang==k or k=='en':
+#                isavailable=True
+#                print(f'lang {lang} is available')
+
         self.utils.log_variable(logger=self.logger,msg='available subs',langs_d=langs_d)
         return isavailable, langs_d
             
     # download subs from yt 
     def download_subs(self,lang = 'pl', format='json3' ):
         vid_url=self.ytURL.vid_url
+        
+        isavailable, langs_d = self.check_available_subs_langs(lang=lang)
+        if not isavailable:
+            self.utils.log_variable(logger=self.logger,msg=f'lang {lang} is not available',langs_d=langs_d)
+            print('lang is not available')
+            return None
+
+
+            
+        
         l=["yt-dlp","--skip-download",vid_url,"--get-title"]
         returncode, stdout, stderr =self.utils.subprocess_run(l,logger=self.logger) 
         title=stdout.replace(' ','_').replace('|','').strip() 
         title=''.join([c for c in title if c.isalnum() or c in ('_') ])
+        self.vid_title=title
         fp=self.utils.path_join(self.tmp_dir,title)
         l=["yt-dlp","-o", f"{fp}","--skip-download"]
         l+=[vid_url,"--force-overwrites",
@@ -115,8 +133,7 @@ class ytDownloader:
         subs_fp,meta=self.utils.path_join(self.tmp_dir,filename,meta=True)   # check if file exists 
         self.utils.log_variable(logger=self.logger,msg='downloading subs ',filename=filename,meta=meta,returncode=returncode,stdout=stdout,stderr=stderr)
         
-#        self.subs_exist=meta['exists'] # update state variables 
-#        if meta['exists']:             
+        self.subs_exist=meta['exists'] # update state variables         
         self.subs_fp=subs_fp
 
     # parses json 
@@ -219,6 +236,17 @@ class ytDownloader:
         self.subs_df=self._concat_on_condition(df=self.subs_df,cond=cond,func=func)
         self.utils.sentesize(df=self.subs_df)
         self._calculate_pause_to_next(df=self.subs_df)
+    def concat_to_line(self):
+        def func(prev_row,cur_row): # func summing cur row to previous row 
+            prev_row['txt']=prev_row['txt']+' ' + cur_row['txt']
+            prev_row['en_flt']=cur_row['en_flt']
+            prev_row['en']=cur_row['en']
+            return prev_row,cur_row,True
+        cond=lambda prev_row,cur_row  :  True
+        self.subs_df=self._concat_on_condition(df=self.subs_df,cond=cond,func=func)
+        self.utils.sentesize(df=self.subs_df)
+        self._calculate_pause_to_next(df=self.subs_df)
+
 
     # returns dictionary with chunks of text aggregated to more or less N second lengths 
     def get_chunks_of_subs(self,N=5*60): 
@@ -242,5 +270,21 @@ class ytDownloader:
         
 
 if __name__=='__main__':
-    pass
+    print('here')
+    url='https://www.youtube.com/watch?v=wVvhBr64odI&ab_channel=LiftingVault'
+    url='https://www.youtube.com/watch?v=LoQkO6LaETA&ab_channel=S%C5%82awomirMentzen'
+#    url='https://www.youtube.com/watch?v=kQKrmDLvijo&ab_channel=eltoro'
+#    url='https://www.youtube.com/watch?v=vdnA-ESWcPs&t=13s&ab_channel=Movieclips'
+#    #url='https://youtube.com/clip/Ugkx18gY1IHB--ovOGIXSlfMNFqufyhFT8x1'
+#    url='https://www.youtube.com/watch?v=vdnA-ESWcPs&t=13s&ab_channel=Movieclips'
+    url='https://www.youtube.com/watch?v=_lOT2p_FCvA&ab_channel=StarWarsMalaysia'
+    utils=Utils.Utils()
+    yturl=ytURL.ytURL()
+    ytd=ytDownloader(utils=utils,ytURL=yturl)
+    ytd.url=url                              
+    ytd.tmp_dir=ytd.utils.get_cur_ts()       
+    timestamps=["00:01:55","00:02:05"]
+    timestamps=["00:00:53","00:01:30"]
+    timestamps=None
+    ytd.download_vid( timestamps=timestamps)                      
     

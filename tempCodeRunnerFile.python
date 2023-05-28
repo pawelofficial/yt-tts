@@ -1,0 +1,34 @@
+import av
+import Utils 
+def cut_video(input_path, output_path, start_time, end_time):
+    input_container = av.open(input_path)
+    output_container = av.open(output_path, 'w')
+
+    for stream in input_container.streams:
+        output_container.add_stream(template=stream)
+
+    start_pts = start_time * input_container.streams.video[0].average_rate
+    end_pts = end_time * input_container.streams.video[0].average_rate
+
+    for packet in input_container.demux():
+        if packet.dts is None:
+            continue
+        if packet.stream.type == 'video' and (packet.dts < start_pts or packet.dts > end_pts):
+            continue
+        if packet.stream.type == 'audio' and (packet.pts < start_pts or packet.pts > end_pts):
+            continue
+        packet.stream = output_container.streams[packet.stream.index]
+        output_container.mux(packet)
+
+    input_container.close()
+    output_container.close()
+
+
+
+u=Utils.Utils() 
+input_fp=u.path_join('2023052016','Star_Wars_Episode_V__I_am_your_Fatherwebm.webm')
+output_fp=u.path_join('2023052016','out.webm')
+
+start_time = 10 # in seconds
+end_time = 20 # in seconds
+cut_video(input_fp, output_fp, start_time, end_time)
