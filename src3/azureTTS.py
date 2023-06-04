@@ -48,17 +48,18 @@ class azureTTS:
         self.translator_config = self.config['translator'] 
         
 
-            
+    def translate_df(self,df=None,src_lang='en',tgt_langs=['pl','fr'],text_column='txt'):
+        return self.translate(src_lang=src_lang,tgt_langs=tgt_langs,df=df,s=None, text_column=text_column)
+         
     
-    def translate(self,src_lang='en',tgt_lang='pl',df = None, text_column='txt',output_col=None):
-        if df is None:
-            print('gotta provide df fren')
-            raise
-        if output_col is None:
-            output_col=f'{text_column}_{tgt_lang}'
+    def translate_str(self,s=None,src_lang='en',tgt_langs=['pl','fr']):
+        return self.translate(src_lang=src_lang,tgt_langs=tgt_langs,s=s,text_column=None)
+         
+    # translates either string or df with a column name from src lang to tgt lang 
+    def translate(self,src_lang='en',tgt_langs=['pl','fr'],df = None,s=None, text_column='txt'):
+        output_cols=[f'{text_column}_{tgt_lang}' for tgt_lang in tgt_langs  ]
     
         self._setup_translator_config()
-        
         key=self.translator_config['key1']
         endpoint=self.translator_config['endpoint'] 
         location = self.translator_config['region'] 
@@ -67,40 +68,42 @@ class azureTTS:
         params = {
                 'api-version': '3.0',
                 'from': src_lang,
-                'to': [tgt_lang]
+                'to': tgt_langs
                 }
-        headers = {
-                    'Ocp-Apim-Subscription-Key': key,
+        headers = {'Ocp-Apim-Subscription-Key': key,
                     # location required if you're using a multi-service or regional (not global) resource.
                     'Ocp-Apim-Subscription-Region': location,
                     'Content-type': 'application/json',
                     'X-ClientTraceId': str(uuid.uuid4())
                     }
-        body = [{
-                'text': 'I would really like to drive your car around the block a few times and then marry you!'
-                }
-                ]
+        if s is not None:
+            body = [{
+                    'text': f"{s}"  # 'I would really like to drive your car around the block a few times and then marry you!'
+                    }]
+            
+        if df is not None:
+            body = [{'text': text} for text in df[text_column]]
 
-        body = [{'text': text} for text in df[text_column]]
         request = requests.post(constructed_url, params=params, headers=headers, json=body)
         response = request.json()
+        translations_dic={lang:[] for lang in tgt_langs}
         
-        translated_text=[]
-        raw_data=json.loads(json.dumps(response, sort_keys=True, ensure_ascii=False, indent=4, separators=(',', ': ')))
+        response_list=json.loads(json.dumps(response, sort_keys=True, ensure_ascii=False, indent=4, separators=(',', ': ')))
+        for dic in response_list:
+            translations_list=dic['translations']
+            for d in translations_list:
+                txt=d['text']
+                lng=d['to']
+                translations_dic[lng].append(txt)
 
-        for d in raw_data:
-            print(d)
-            txt=d['translations'][0]['text']
-            translated_text.append(txt)
+        if s is not None:
+            return translations_dic
         
+        if df is not None:
+            for lang,output_col in zip(tgt_langs,output_cols):
+                df[output_col] = translations_dic[lang]
+            return df 
 
-#        colname=f'{text_column}_{tgt_lang}'
-        df[output_col] = translated_text
-
-
-# Conv        
-
-        
     # sets up speech config 
     def _setup_speech_config(self):
         self.speech_config = sdk.SpeechConfig(subscription=self.config['tts']['key1'], region=self.config['tts']['region'])
@@ -169,22 +172,56 @@ class azureTTS:
         self._setup_speech_synthesizer()                        # refresh synthesizer sience audio config was refreshed 
         speech_synthesis_result = self.speech_synthesizer.speak_ssml(self.xml_txt)
         self.check_synthesis_result(speech_synthesis_result=speech_synthesis_result)
+        dur=self.utils.ts_to_flt(speech_synthesis_result.audio_duration)
+        return dur, self.wav_fp
         
-
+    def tts_match(self,fname='test',s=None,tgt_dur=None):
+        self._rate=0.9
+        dur,wav_fp=self.tts(fname=fname,s=s)
+        ratio1=float(dur)/float(tgt_dur)
+        #print(self.rate,ratio1)
+        self._rate=1.1
+        dur,wav_fp=self.tts(fname=fname,s=s)
+        ratio2=float(dur)/float(tgt_dur)
+        #print(self.rate,ratio2)
+        x=[0.9,1.1]
+        y=[ratio1,ratio2] # 0.97 1.12
+        
+        y_target = 1.0
+        x_target = x[0] + (y_target - y[0]) * (x[1] - x[0]) / (y[1] - y[0])
+        self._rate=x_target
+        
+        if x_target < 0.9:
+            self._rate=0.9
+            dur,wav_fp=self.tts(fname=fname,s=s)
+        elif x_target > 1.1:
+            self._rate=1.1
+            dur,wav_fp=self.tts(fname=fname,s=s)
+        else:
+            self._rate=x_target
+            dur,wav_fp=self.tts(fname=fname,s=s)
+            ratio3=float(dur)/float(tgt_dur)
+            #print('yeap  ' ,self.rate,ratio3)
+        return dur, self.wav_fp
     # loops through df column and dumps .wav files 
     def tts_from_df(self,df,colname='txt',N=999):
         for no,row in df.iterrows():
             s=row[colname]
             #print(s)
             fname=self.utils.hash(s)+'.wav'
-            self.tts(fname=fname,s=s)
+            dif=row['dif']
+            self.tts_match(fname=fname,s=s,tgt_dur=dif)
+            #self.tts(fname=fname,s=s)
             df.loc[no,'fname']=fname
             df.loc[no,'wav_fp']=self.wav_fp # os.path.abspath(self.wav_fp)
             df.loc[no,'wav_len']=self.utils.get_media_len(media_fp = self.wav_fp)
-            if no >= N : # speed things up with N parameter 
-                print('done')
-                break
+
         self.tts_df=df
+
+
+        
+    
+
 
     @property 
     def rate(self):
@@ -215,7 +252,7 @@ class azureTTS:
     @tmp_dir.setter 
     def tmp_dir(self,dir):
         self._tmp_dir = self.utils.path_join('tmp',dir)
-        print(dir)
+        #print(dir)
         self.utils.make_dir(fp=self._tmp_dir) 
     @property 
     def logger(self):

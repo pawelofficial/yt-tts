@@ -12,6 +12,7 @@ from moviepy.editor import VideoFileClip, AudioClip
 import matplotlib.pyplot as plt 
 import time 
 import Utils 
+import shutil
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 # all methods should accept input_fname or input_fp
@@ -27,12 +28,14 @@ class vidMaker:
         self.utils=utils
         self._tmp_dir = None       # tmp directory      
         self._logger  = None       # logger 
+        self.codec='libx265'       # codec for video
 
         
         self._media_fp = None 
         self.logger='vidMaker_logger'
         self.output_fp = None      # outp  ut file 
         self._ffmpeg_path="C:\\ffmpeg\\bin\\"        
+        self.format='mov'
         
 
     
@@ -65,7 +68,7 @@ class vidMaker:
             torchvision.io.write_video(filename=self.output_fp
                                        ,video_array=vid
                                        ,fps=info['video_fps']
-                                        ,video_codec='libvpx-vp9'
+                                        ,video_codec=f'{self.codec}'
                                         ,options={
                                                     '-crf': '0',  # Adjust the Constant Rate Factor (CRF) for quality vs. size trade-off
                                                     '-b:v': '1M',  # Specify the video bitrate (adjust as needed)
@@ -123,7 +126,13 @@ class vidMaker:
         torchvision.io.write_video(filename=self.output_fp
                                        ,video_array=out_tensor
                                        ,fps=info['video_fps']
-                                        ,video_codec='libvpx'
+                                        ,video_codec=f'{self.codec}'
+                                        ,options={
+                                                    '-crf': '0',  # Adjust the Constant Rate Factor (CRF) for quality vs. size trade-off
+                                                    '-b:v': '1M',  # Specify the video bitrate (adjust as needed)
+                                                    '-quality':'best',
+                                                    '-speed': '0',
+                                        }
                                        )
 
     # adds pause to the audio of specific duration in seconds      
@@ -174,6 +183,38 @@ class vidMaker:
             en_flt=media_len*prc
         ffmpeg_extract_subclip(vid_fp, st_flt, en_flt, targetname=out_fp)
         return out_fp
+    
+    def cut_vid_recurrence(self,vid_fp,out_dir_fp=None,out_list=[],duration=None): # actually using recurrence means you are a pro programmer
+        out1,out2=self.cut_vid_ffmpeg_in_half(vid_fp,out_dir_fp=out_dir_fp)
+        #out_list.append(out1)
+        #out_list.append(out2)
+        if self.get_media_len(out1)>duration:
+            self.cut_vid_recurrence(out1,out_dir_fp=out_dir_fp,out_list=out_list,duration=duration)
+        else:
+            out_list.append(out1)
+        if self.get_media_len(out2)>duration:
+            self.cut_vid_recurrence(out2,out_dir_fp=out_dir_fp,out_list=out_list,duration=duration)
+        else:
+            out_list.append(out2)
+        return out_list
+    
+    def cut_vid_ffmpeg_in_half(self,vid_fp,out_dir_fp=None):
+        if out_dir_fp is None:
+            out_dir_fp=self.tmp_dir
+        ffmpeg=[f"{self._ffmpeg_path}ffmpeg",'-y'] # ffmpeg executable  
+        
+        out_fp1=self.utils.path_join(out_dir_fp, f'{self.utils.get_cur_ts()}_part.{self.format}')
+        time.sleep(1)
+        out_fp2=self.utils.path_join(out_dir_fp,f'{self.utils.get_cur_ts()}_part.{self.format}')
+        half_time=self.get_media_len(fp=vid_fp)/2
+        l1=[f"{self._ffmpeg_path}ffmpeg", '-i', vid_fp, '-ss', '0', '-t', str(half_time), '-c', 'copy', out_fp1]
+        l2 = [f"{self._ffmpeg_path}ffmpeg", '-i', vid_fp, '-ss', str(half_time), '-c', 'copy', out_fp2]
+        self.utils.subprocess_run(l1)
+        self.utils.subprocess_run(l2)
+        print(self.get_media_len(out_fp1))
+        print(self.get_media_len(out_fp2))
+        print(self.get_media_len(vid_fp))
+        return out_fp1,out_fp2
 
     def cut_vid_ffmpeg(self,vid_fp,out_fp,st_flt=0,en_flt=10,**kwargs):
         prc=kwargs.get('prc',None)
@@ -187,7 +228,9 @@ class vidMaker:
         if timestamps is None:
             l=['-i',f'{vid_fp}','-q:v','0','-map','v',f'{out_fp}']    
         else:
-            l=['-i',f'{vid_fp}','-ss',f'{timestamps[0]}','-t',f'{timestamps[1]}','-q:v','0','-map','v',f'{out_fp}']
+            duration = timestamps[1] - timestamps[0]
+#            l=['-i',f'{vid_fp}','-ss',f'{timestamps[0]}','-t',f'{duration}','-q:v','0','-map','v',f'{out_fp}','-preset','ultrafast']
+            l = ['-ss', f'{timestamps[0]}', '-i', f'{vid_fp}', '-t', f'{duration}', '-q:v', '0', '-map', 'v', f'{out_fp}']
         l=ffmpeg + l     
         self.utils.subprocess_run(l)
         return out_fp
@@ -230,13 +273,15 @@ class vidMaker:
     
     # concats vids together 
     def concat_vids(self,vids_fps: list=[],output_dir_fp = None, output_fname = None
-                    ,add_pause_sec=0):
+                    ,add_pause_sec=0,out_fp=None):
                     
         if output_dir_fp is None: 
             output_dir_fp = self.tmp_dir
         if output_fname is None: 
-            output_fname='concat_vid.webm'  
+            output_fname=f'concat_vid.{self.format}'  
         self.output_fp=self.utils.path_join(output_dir_fp,output_fname)
+        if out_fp is not None:
+            self.output_fp=out_fp
         ws=[]
         for fp in vids_fps:
             vid,audio,info=torchvision.io.read_video(fp)
@@ -249,7 +294,13 @@ class vidMaker:
         torchvision.io.write_video(filename=self.output_fp
                                        ,video_array=t
                                        ,fps=info['video_fps']
-                                        ,video_codec='libvpx'
+                                        ,video_codec=f'{self.codec}'
+                                        ,options={
+                                                    '-crf': '0',  # Adjust the Constant Rate Factor (CRF) for quality vs. size trade-off
+                                                    '-b:v': '1M',  # Specify the video bitrate (adjust as needed)
+                                                    '-quality':'best',
+                                                    '-speed': '0',
+                                        }
                                        )
         return self.output_fp
         
@@ -258,11 +309,15 @@ class vidMaker:
         if dir_fp is None:
             dir_fp=self.tmp_dir
         output_fp=self.utils.path_join(dir_fp,fname)
-
+        print('dumping')
         torchvision.io.write_video(filename=output_fp
                                        ,video_array=t
                                        ,fps=fps
-                                        ,video_codec='libvpx'
+                                        ,video_codec=f'libx265' # gotta switch to mp4 
+                                       ,options={
+                                                    '-quality':'best',
+                                                    '-speed': '0',
+                                        }
                                        )
         return output_fp
 
@@ -309,7 +364,7 @@ class vidMaker:
         if output_dir_fp is None: 
             output_dir_fp = self.tmp_dir
         if output_fname is None: 
-            output_fname='extract_vid_from_vid.webm' 
+            output_fname=f'extract_vid_from_vid.{self.format}' 
         self.output_fp=self.utils.path_join(output_dir_fp,output_fname)
         if en_flt==-1:
             en_flt=self.get_media_len(vid_fp) 
@@ -331,6 +386,7 @@ class vidMaker:
             num_frames = audio.shape[-1]
             expanded_num_frames = int(num_frames * stretch_factor)
             indices = (torch.arange(expanded_num_frames) / stretch_factor).long()
+            indices = indices[indices < num_frames]
             stretched_audio = audio[..., indices]
             return stretched_audio
         # match audio len to video len exactly  
@@ -341,19 +397,57 @@ class vidMaker:
         
         stretch_factor = vid_len / audio_len
         if abs(1-stretch_factor)>0.05:
-            print('watch out buster, your stretch factor is pretty big!')
-        
+            print('watch out buster, your stretch factor is pretty big! ', stretch_factor)
         stretched_waveform = stretch_audio(waveform, stretch_factor)
-    
         torchaudio.save(audio_out_fp, stretched_waveform,rate_of_sample)
-
         new_len=self.get_media_len(fp=audio_out_fp)
         return audio_out_fp ,(vid_len, audio_len, new_len) 
+    
+    def copy_file(self,input_fp,output_fp):
+        shutil.copyfile(input_fp, output_fp)
+        pass
         
-    def wrapper_freeze_frames_linearly2(self,vid_fp,out_fp,nsec=1,N=10,tmp_dir=None):
+    def wrapper_freeze_frames_linearly2(self,vid_fp,out_fp,n_chunks=4, nsec=1,N=10,tmp_dir_fp=None,duration=15):
+        if tmp_dir_fp is None:
+            tmp_dir_fp=self.tmp_dir
         # first splits up original video to smaller chunks so i dont run out of memory in pytorch 
-        pass 
+        vid_len=self.get_media_len(fp=vid_fp)
+        step=vid_len//n_chunks
+        chunks=[[i*step,(i+1)*step] for i in range(n_chunks)]
+        chunks[-1][1]=vid_len # chunks are integer lenghts except for the last one 
+        chunks_fps=[]
+        freezed_chunks_fps=[]
         
+
+        # make chunk videos 
+        ###for i,chunk in enumerate(chunks):
+        ###    out_fp=self.utils.path_join(tmp_dir_fp,f'chunk_0{i}.webm')
+        ###    out=self.cut_vid_ffmpeg(vid_fp,out_fp,st_flt=chunk[0],en_flt=chunk[1])
+        ###    chunks_fps.append(out)
+        ###    cl=self.get_media_len(out)
+        chunks_fps=self.cut_vid_recurrence(vid_fp=vid_fp,out_dir_fp=tmp_dir_fp,duration=duration)
+        n=len(chunks_fps)
+            #print(f'chunk_ len is {cl}')
+        # calculate how much to freeze each chunk to achieve correct freeze number my brother in christ 
+        quotient, remainder = divmod(N, n)
+        chunks_per_vid = [quotient + 1] * remainder + [quotient] * (n - remainder)
+        
+        ###x testing: chunks_fps=[f'chunk_0{i}' for i in range(n)]
+        ###x testing: chunks_fps=[self.utils.path_join(tmp_dir_fp,fp) for fp in chunks_fps]
+        # freeze each chunk 
+        for i,(chunk,vid) in enumerate(zip(chunks_per_vid,  chunks_fps)):
+            out_fp=self.utils.path_join(tmp_dir_fp,f'freezed_chunk_0{i}.{self.format}')
+            self.freeze_frames_linearly2(vid_fp=vid,out_fp=out_fp,nsec=nsec,N=chunk,tmp_dir_fp=tmp_dir_fp)
+            #print('warning, copying file to speed up things, ')
+            #self.copy_file(vid_fp,out_fp) # this will make output huge, and your scaling huge as well 
+            freezed_chunks_fps.append(out_fp)
+            
+
+        # concat chunks into single video
+        out_fp=self.utils.path_join(tmp_dir_fp,f'freezed_chunks_concat.{self.format}')
+        self.concat_streams_ffmpg(fps=freezed_chunks_fps,output_fname=f'freezed_chunks_concat.{self.format}',tmp_dir=tmp_dir_fp)
+        return out_fp
+
         
     def freeze_frames_linearly2(self,vid_fp,out_fp,nsec=1,N=10,tmp_dir_fp=None):
         vid_len=self.get_media_len(fp=vid_fp)
@@ -364,7 +458,6 @@ class vidMaker:
         
         if tmp_dir_fp is None:
             tmp_dir_fp=self.tmp_dir
-        
         dumped_fps=[]
         k=0
         for i in range(frame_interval,vid_nframes+frame_interval,frame_interval):
@@ -372,101 +465,25 @@ class vidMaker:
             end_sec=int(start_sec+frame_interval/fps+1)
             
             clip, audio_chunk, info = torchvision.io.read_video(vid_fp, start_pts=start_sec, end_pts=end_sec,pts_unit='sec')
-            print(f'clip dur ', clip.shape[0]/fps, fps  )
+            #print(f'clip dur ', clip.shape[0]/fps, fps  )
             clip=self.slowdown_tensor_ending(vid_t=clip[:frame_interval],nsec=nsec,fps=fps)
             
-            fp=self.dump_tensor(t=clip,fname=f'{str(k)}_vid_.webm',dir_fp=tmp_dir_fp,fps=fps)
+            fp=self.dump_tensor(t=clip,fname=f'{str(k)}_vid_.{self.format}',dir_fp=tmp_dir_fp,fps=fps)
             dumped_fps.append(fp)
             start_frame=i
             k+=1
         out=self.concat_streams_ffmpg(fps=dumped_fps,output_fname=out_fp,tmp_dir=tmp_dir_fp)
-        print(out)
-
-    # adds pauses ( freeze frames ) linearly N times for nsec each time 
-    def freeze_frames_linearly(self,vid_fp = None ,output_dir_fp = None, output_fname = None
-                    ,nsec=1,N=10,tmp_dir_fp=None):    
-                        
-        start_time = time.time()
-        if output_dir_fp is None: 
-            output_dir_fp = self.tmp_dir
-        if output_fname is None: 
-            output_fname='vid_freezed.webm' 
-        self.output_fp=self.utils.path_join(output_dir_fp,output_fname)
-
-            
-        vid_len=self.get_media_len(fp=vid_fp)         # duration in sec 
-        fps=self.utils.get_vid_fps(vid_fp=vid_fp)     # fps 
-        vid_nframes=int(vid_len*fps)
-        nn=int(fps*nsec)
-        print(vid_nframes)
-        start_frame=0
-        frame_interval=(vid_nframes//(N))
-        ws=[]
-        k=0
-        dumped_fps=[]
-#        for i in range(frame_interval,vid_nframes,frame_interval):
-#            start_sec=start_frame/fps 
-#            print(start_sec,start_sec+frame_interval/fps,start_sec+frame_interval/fps+nsec*(k+1))
-#            k+=1
-#            start_frame=i
-#        exit(1)
-#        input('wait')
-        k=0
-        for i in range(frame_interval,vid_nframes+frame_interval,frame_interval):
-            start_sec=start_frame/fps 
-            end_sec=int(start_sec+frame_interval/fps+1)
-            print(start_sec,end_sec)
-#            print(start_frame,start_frame+frame_interval)
-
-            clip, audio_chunk, info = torchvision.io.read_video(vid_fp, start_pts=start_sec, end_pts=end_sec,pts_unit='sec')
-            print(f'clip dur ', clip.shape[0]/fps, fps  )
-#            clip=vid[:frame_interval,:,:,:]
-            #print(f'foobar {vid.shape}')
-            #print(vid.shape,info)
-            
-            clip=self.slowdown_tensor_ending(vid_t=clip[:frame_interval],nsec=nsec,fps=fps)
-            frame=clip[-1,:,:,:]
-#            freeze_vid=torch.ones(nn,vid.shape[1],vid.shape[2],vid.shape[3])*frame
-#            ws.append(clip)
-#            ws.append(freeze_vid)
-            
-            fp=self.dump_tensor(t=clip,fname=f'{str(k)}_vid_.webm',dir_fp=tmp_dir_fp,fps=fps)
-            dumped_fps.append(fp)
-#            fp=self.dump_tensor(t=freeze_vid,fname=f'{str(k)}_freeze_.webm',dir_fp=tmp_dir_fp,fps=fps)
-#            dumped_fps.append(fp)
-            start_frame=i
-            k+=1
-            if k>3:
-                pass
-#                break
-#                pass # break
-                
-            
-        print(dumped_fps)
-        out_fp=self.concat_streams_ffmpg(fps=dumped_fps,tmp_dir=tmp_dir_fp)
+        #print(out)
+        return out
+    
+    def convert_vid(self,vid_fp,tgt_format='mp4'):
+        ffmpeg=[f"{self._ffmpeg_path}ffmpeg",'-y']
+        out_fp=vid_fp.split('.')[0]+f'.{tgt_format}'
+        l = ffmpeg + ["-i", vid_fp, "-vcodec", "libx264", "-acodec", "aac", out_fp]
+        self.utils.subprocess_run(l=l,logger=self.logger)
         return out_fp
-        exit(1)
-        NN=0
-        for w in ws:
-            NN+=w.shape[0]
-        out_t=torch.zeros(NN,vid.shape[1],vid.shape[2],vid.shape[3])
-        for w in ws:
-            out_t[:w.shape[0]]=w
-            print(out_t.shape)
-        t=out_t
-                   
-#        t=ws[0]
-#        for i in range(1,len(ws)):
-#            t=torch.cat((t,ws[i]),dim=0 )   
-#        
-        torchvision.io.write_video(filename=self.output_fp
-                                       ,video_array=t
-                                       ,fps=info['video_fps']
-                                        ,video_codec='libvpx'
-                                       )
         
-    
-    
+        
     # extracts sound from video 
     def _extract_sound_from_vid(self,vid_fp=None, out_fp=None):
         ffmpeg=[f"{self._ffmpeg_path}ffmpeg",'-y'] # ffmpeg executable  
@@ -506,34 +523,4 @@ class vidMaker:
 
 if __name__=='__main__':
     pass
-    utils=Utils.Utils()
-    vm=vidMaker(utils)
-    vm.tmp_dir='2023052012'
-    output_dir_fp=vm.utils.path_join(vm.tmp_dir,'output')    
-    input_vid='indiana.webm'
-
-
-    vm.media_fp=vm.utils.path_join(vm.tmp_dir,input_vid)
-    timestamp_to_float = lambda timestamp: sum(float(x) * 60 ** i for i, x in enumerate(reversed(timestamp.split(':'))))
-    scenes={
-        '01_into':['01:57.50','01:59.25'],
-        '02_memcen':['01:59.25','02:00.00'],
-        '03_nothing':['02:00.00','02:05.00'],
-        '04_miecz':['02:05.80','02:08.00'],
-        '':['02:08.60','02:13.43']
-            }
-    scenes_flt={}
-    for key, timestamps in scenes.items():
-        scenes_flt[key] = list(map(timestamp_to_float, timestamps))
-    
-    for k,v in scenes_flt.items():
-        title=f'{k}.webm'
-        st=v[0]
-        en=v[1] 
-        x=vm.cut_media(st_flt=st,en_flt=en,output_fname=title,isvideo=True)
-        print(x)
-    
-    
-    
-
-
+   

@@ -5,6 +5,7 @@ sys.path.append(
 import ytDownloader
 import Utils
 import ytURL
+import time 
 
 def set_ytd():
     utils=Utils.Utils()
@@ -37,12 +38,16 @@ def unittest__download_vid():
     url='https://www.youtube.com/watch?v=wVvhBr64odI&ab_channel=LiftingVault'
     url='https://www.youtube.com/watch?v=BsNP5ygW-AM&ab_channel=UMCS'
     url='https://www.youtube.com/watch?v=hA02sLRC2KA&ab_channel=LiftingVault'
+    url='https://www.youtube.com/watch?v=pPNwpr8tNMg&ab_channel=MovieRecaps'
+#    url='https://www.youtube.com/watch?v=svYL6yb426Q&ab_channel=LiftingVault'
     ytd,utils,yturl=set_ytd()
-    ytd.url=url                             # set url 
-    ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
-    ytd.download_vid()                      # download vid 
     
+    ytd.url=url                             # set url 
+    ytd.tmp_dir=ytd.utils.path_join('tests','tests_outputs')
+    out=ytd.download_vid()                      # download vid 
+    print(out)
 def unittest__download_vid_with_timestamps():   # doesnt work -,- 
+    
     url='https://www.youtube.com/watch?v=wVvhBr64odI&ab_channel=LiftingVault'
     ytd,utils,yturl=set_ytd()
     ytd.url=url                             # set url 
@@ -52,13 +57,29 @@ def unittest__download_vid_with_timestamps():   # doesnt work -,-
 
 def unittest__download_subs(lang='en-en'):   # doesnt work -,- 
     url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
+    url='https://www.youtube.com/watch?v=ESwGjkxToiU&ab_channel=MovieRecaps'
+#    url='https://www.youtube.com/watch?v=0PR39Ne-xnQ&ab_channel=MovieRecaps'
     ytd,utils,yturl=set_ytd()
     ytd.url=url                             # set url 
-    ytd.tmp_dir=ytd.utils.get_cur_ts()      # set tmp dir
+    ytd.tmp_dir=ytd.utils.path_join('tests','tests_outputs')
     ytd.download_subs(lang=lang)                      # download vid 
     ytd.parse_json3_to_df()
     ytd.concat_overlapping_rows()
     ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name='subs_df')
+    
+def unittest__add_string_to_df(lang='en-en'):   # doesnt work -,- 
+    url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
+    url='https://www.youtube.com/watch?v=ESwGjkxToiU&ab_channel=MovieRecaps'
+#    url='https://www.youtube.com/watch?v=0PR39Ne-xnQ&ab_channel=MovieRecaps'
+    s='Thanks for watching, dont forget to subscribe to the channel, see you next time !'
+    
+    ytd,utils,yturl=set_ytd()
+    ytd.url=url                             # set url 
+    ytd.tmp_dir=ytd.utils.path_join('tests','tests_outputs')
+    df=ytd.utils.read_df(fp=ytd.utils.path_join('tests','tests_inputs','subs_df.csv'))
+    ytd.subs_df=df
+    ytd.add_string_to_df()
+    ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name='subs_df_add_string_to_df')
     
 def unittest__check_available_subs_langs(lang='pl'):   # doesnt work -,- 
     url='https://www.youtube.com/watch?v=AzqVHWEGcFY&ab_channel=MovieRecaps'
@@ -128,8 +149,10 @@ def unittest__punctuate_df(col='txt'):
     
 
 if __name__=='__main__':
+    tm=time.time()
 #    unittest__download_and_aggregate()
-    unittest__punctuate_df()
+    unittest__add_string_to_df()
+    print(f'time: {time.time()-tm}')
     exit(1)
     unittest__check_available_subs_langs()
     unittest__download_subs()

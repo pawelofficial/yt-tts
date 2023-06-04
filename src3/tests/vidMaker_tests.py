@@ -23,6 +23,13 @@ class TestvidMaker(unittest.TestCase):
     def test_media_fp(self):
         self.vm.media_fp='foo'
 
+    def test_convert_vid(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        vid_fp=self.vm.utils.path_join('tests','tests_inputs','big_vid_webm.webm')
+        print('vconverting')
+        out_fp=self.vm.convert_vid(vid_fp=vid_fp)
+        print(out_fp)
+
 
     def test_cut_vid_ffmpeg(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
@@ -118,22 +125,38 @@ class TestvidMaker(unittest.TestCase):
         fp,_ = self.vm.match_audio_len_to_video_exactly(audio_fp=audio_fp,vid_fp=vid_fp,audio_out_fp=out_fp)
         print(_)
         
+    def test_freeze_frames_linearly_quality(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_qual')
+        vids_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_qual','freezed_vids')
+        f='input_short.mp4'
+#        f='freeze_frames_linearly_10m_input.webm'
+        fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
+        #self.vm.convert_vid(vid_fp=fp1,tgt_format='mov')
+        
+        self.vm.media_fp=fp1
+        out_fp=self.vm.utils.path_join('tests','tests_inputs','tmp_qual','out.mp4')
+        tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_qual')
+
+
+        out=self.vm.freeze_frames_linearly2(vid_fp=self.vm.media_fp
+                                        ,out_fp=out_fp
+                                        ,tmp_dir_fp=vids_dir
+                                        ,N=5,nsec=1)
+        
+        print(out)
+        
     def test_freeze_frames_linearly(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
         vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
         f='THEY_DISCOVERED_ADVANCE_TINY_HUMANS_LIVING_IN_A_FRIDGE.webm'
-        f='Russian_Streetlifter_Tests_His_Benchwebm.webm'
+        f='freeze_frames_linearly_1m_input.webm'
+#        f='freeze_frames_linearly_10m_input.webm'
         fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
         self.vm.media_fp=fp1
         out_fp=self.vm.utils.path_join('tests','tests_outputs','freeze_frames_lin2.webm')
         tmp_dir=self.vm.utils.path_join('tests','tests_inputs','freeze_dir')
 
 
-        #self.vm.cut_media(st_flt=0,en_flt=30,isvideo=True,output_fname='freeze_vid_input2.webm')
-        #freezed_fp=self.vm.freeze_frames_linearly(vid_fp=fp1
-        #                               ,output_fname='freeze_vids_output.webm'
-        #                               ,tmp_dir_fp=vids_dir)
-        #
         out=self.vm.freeze_frames_linearly2(vid_fp=self.vm.media_fp
                                         ,out_fp=out_fp
                                         ,tmp_dir_fp=tmp_dir
@@ -150,12 +173,63 @@ class TestvidMaker(unittest.TestCase):
         self.vm.concat_vids(vids_fps=vids_fps,output_fname='concat_vids_test.webm',
                             add_pause_sec=1)
         
+    def test_freeze_frames_wrapper(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
+        f='THEY_DISCOVERED_ADVANCE_TINY_HUMANS_LIVING_IN_A_FRIDGE.webm'
+        f='freeze_frames_linearly_1m_input.webm'
+#        f='freeze_frames_linearly_10m_input.webm'
+        fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
+        self.vm.media_fp=fp1
+        out_fp=self.vm.utils.path_join('tests','tests_outputs','freeze_frames_lin2.webm')
+        tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_dir')
+
+
+        out=self.vm.wrapper_freeze_frames_linearly2(vid_fp=self.vm.media_fp
+                                        ,out_fp=out_fp
+                                        ,tmp_dir_fp=tmp_dir
+                                        ,n_chunks=3
+                                        ,N=20,nsec=1)
+    def test_cut_vid_in_half(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
+        tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_dir')
+        f='freeze_frames_linearly_1m_input.webm'
+        
+        vid_fp=self.vm.utils.path_join(self.vm.tmp_dir,f)
+        out_fp1,out_fp2=self.vm.cut_vid_ffmpeg_in_half(vid_fp=vid_fp,out_dir_fp=tmp_dir)
+    
+    def test_cut_vid_recurrence(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_qual')
+        vids_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_qual')
+#        self.vm.utils.clear_dir(vids_dir)
+        f='input.mp4'
+        vid_fp=self.vm.utils.path_join(self.vm.tmp_dir,f)
+        out_list=self.vm.cut_vid_recurrence(vid_fp=vid_fp,out_dir_fp=vids_dir,duration=60)
+        #self.vm.utils.clear_dir(dir_path=vids_dir,save_fps=out_list)
+        self.vm.concat_streams_ffmpg(fps=out_list,output_fname='recurrence_concat.mp4',tmp_dir=vids_dir)
+        print(out_list)
+
+
+    def test_copy_file(self):
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
+        vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
+        self.vm.utils.clear_dir(vids_dir)
+        tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_dir')
+        f='freeze_frames_linearly_2m_input.webm'
+        
+        input_fp=self.vm.utils.path_join(self.vm.tmp_dir,f)
+        output_fp=self.vm.utils.path_join(self.vm.tmp_dir,'copy.webm')
+        self.vm.copy_file(input_fp,output_fp)
 
 if __name__ == '__main__':
     tm=time.time()
     t=TestvidMaker()
-    t.test_concat_audios()
-#    t.test_freeze_frames_linearly()
+#    t.test_cut_vid_ffmpeg()
+    #t.test_cut_vid_recurrence()
+    t.test_freeze_frames_linearly_quality()
+    #test_freeze_frames_linearly
+#    t.test_freeze_frames_wrapper()
     print(f'time: {time.time()-tm}')
 #    t.test_add_silence
 #    t.test_tmp_dir()

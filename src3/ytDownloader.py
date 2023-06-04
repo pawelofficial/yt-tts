@@ -10,6 +10,7 @@ import chardet
 import sys 
 import punctuate as rpunct
 from multiprocessing import Process, freeze_support
+from fuzzywuzzy import fuzz
 
 # if __name__=='__main__':
 #     freeze_support()
@@ -30,12 +31,14 @@ class ytDownloader:
         self._logger  = None       # logger 
         
         self.logger='ytd_logger'
+        self._ffmpeg_path="C:\\ffmpeg\\bin\\"      
         self.subs_exist=False       # set by download_subs 
         self.subs_fp=None           # set by download_subs 
         self.vid_exist=False       # set by download_vid
         self.vid_fp=None           # set by download_vid
         self.vid_title=None
         self.tmp_dir=None
+        self.subscribe_to_channel_phrase='Thank you for watching, please subscribe to the channel if you liked the video, see you next time!'
 
         self.subs_df_exist = False  # set by parse subs 
         self.subs_df_fp    = None   # set by parse subs 
@@ -66,14 +69,16 @@ class ytDownloader:
         self._logger = self.utils.setup_logger(name=nm,log_file=f'{nm}.log')
 
     # downloads a vid from yt  
-    def download_vid(self,timestamps = None,format='.webm' ):
+    def download_vid(self,timestamps = None,format='webm' ):
         vid_url=self.ytURL.vid_url
         l=["yt-dlp","--skip-download",vid_url,"--get-title"]
         returncode, stdout, stderr =self.utils.subprocess_run(l,logger=self.logger) 
-        title=stdout.replace(' ','_').replace('|','') + f'.{format}' # yt vid extension is webm 
+        title=stdout.replace(' ','_').replace('|','') # + f'.{format}' # yt vid extension is webm 
         title=''.join([c for c in title if c.isalnum() or c in ('_') ])
         fp=self.utils.path_join(self.tmp_dir,title)
-        l=["yt-dlp",'--no-cache-dir',vid_url,"-o", f"{fp}"]
+        l=["yt-dlp",'--no-cache-dir',  vid_url,"-o", f"{fp}"]
+        
+        #l=["yt-dlp",'--no-cache-dir', vid_url,"-o", f"{fp}"]
         if timestamps is not None:
             l+=["--download-sections",f"*{timestamps[0]}-{timestamps[1]}"]
         returncode, stdout, stderr = self.utils.subprocess_run(l,logger=self.logger)
@@ -90,6 +95,7 @@ class ytDownloader:
 
         if meta['exists']:             
             self.subs_fp=vid_fp
+
         return vid_fp
             
     # returns bool of whether lang is available and dictionary with available langs and formats 
@@ -116,6 +122,30 @@ class ytDownloader:
         self.utils.log_variable(logger=self.logger,msg='available subs',langs_d=langs_d)
         return isavailable, langs_d
             
+    # if keyword is not present in last n words of subs_df add a text to it
+    # for some reason sometimes there is no subs in yt video regarding "please subscribe to the channe; "
+    def add_string_to_df(self,df=None,s=None,keyword_check='subscribe',n_last_word=15,txt_col='txt'):
+        if df is None:
+            df=self.subs_df
+        if s is None:
+            s=self.subscribe_to_channel_phrase
+            
+        txt=df[txt_col].iloc[len(df)-1] # last txt of df 
+        
+        last_row_d=df.iloc[len(df)-1].to_dict()
+        txt=last_row_d[txt_col]
+        last_words=txt.split(' ')[-n_last_word:]
+
+        for w in last_words:
+            ratio = fuzz.ratio(w.lower().strip(), keyword_check.lower())
+            if ratio > 90: # keyword of your choice is already in last words - no need to add your text 
+                return 
+            else:
+                txt=txt +' ' + s
+        last_row_d[txt_col]=txt
+        df.iloc[len(df)-1]=last_row_d
+        return 
+        
     # download subs from yt 
     def download_subs(self,lang = 'pl', format='json3' ):
         vid_url=self.ytURL.vid_url
@@ -123,6 +153,7 @@ class ytDownloader:
         isavailable, langs_d = self.check_available_subs_langs(lang=lang)
         if not isavailable:
             self.utils.log_variable(logger=self.logger,msg=f'lang {lang} is not available',langs_d=langs_d)
+            self.utils.log_variable(logger=self.logger,msg=f'available langs',langs_d=langs_d)
             print('lang is not available')
             return None
 
@@ -279,6 +310,13 @@ class ytDownloader:
             chunks_d[str(int(i))]={'st_flt':st_flt,'en_flt':en_flt,'chunk':s}
             #print(chunks_d[str(int(i))])
         return chunks_d
+
+    def convert_vid(self,vid_fp,tgt_format='mp4'):
+        ffmpeg=[f"{self._ffmpeg_path}ffmpeg",'-y']
+        out_fp=vid_fp.split('.')[0]+f'.{tgt_format}'
+        l = ffmpeg + ["-i", vid_fp, "-vcodec", "libx264", "-acodec", "aac", out_fp]
+        self.utils.subprocess_run(l=l,logger=self.logger)
+        return out_fp
         
     def punctuate_df(self,df=None, input_col='txt',output_col='txt_punct'):
         punctuated_txt=[]
