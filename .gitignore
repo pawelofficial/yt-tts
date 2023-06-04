@@ -11,11 +11,15 @@ __pycache__/
 *.mp4
 *.mp3
 *.csv
+
 src2/tmp/*
 src3/tmp/*
 src2/secrets/*
 src3/secrets/*
 src3/venv*
+src3/tests/tests_inputs/*
+src3/tests/tests_outputs/*
+src3/tmp/*
 venv/*
 venv2/*
 # Distribution / packaging
