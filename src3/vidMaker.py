@@ -406,36 +406,29 @@ class vidMaker:
     def copy_file(self,input_fp,output_fp):
         shutil.copyfile(input_fp, output_fp)
         pass
-        
-    def wrapper_freeze_frames_linearly2(self,vid_fp,out_fp,n_chunks=4, nsec=1,N=10,tmp_dir_fp=None,duration=15):
+    
+    
+    def wrapper_freeze_frames_linearly2(self,vid_fp,out_fp, nsec=1,freezes_added=10,tmp_dir_fp=None,duration=20,N=2):
         if tmp_dir_fp is None:
             tmp_dir_fp=self.tmp_dir
         # first splits up original video to smaller chunks so i dont run out of memory in pytorch 
         vid_len=self.get_media_len(fp=vid_fp)
-        step=vid_len//n_chunks
-        chunks=[[i*step,(i+1)*step] for i in range(n_chunks)]
-        chunks[-1][1]=vid_len # chunks are integer lenghts except for the last one 
-        chunks_fps=[]
         freezed_chunks_fps=[]
-        
-
-        # make chunk videos 
-        ###for i,chunk in enumerate(chunks):
-        ###    out_fp=self.utils.path_join(tmp_dir_fp,f'chunk_0{i}.webm')
-        ###    out=self.cut_vid_ffmpeg(vid_fp,out_fp,st_flt=chunk[0],en_flt=chunk[1])
-        ###    chunks_fps.append(out)
-        ###    cl=self.get_media_len(out)
+        # make some number of chunks based on duration 
         chunks_fps=self.cut_vid_recurrence(vid_fp=vid_fp,out_dir_fp=tmp_dir_fp,duration=duration)
         n=len(chunks_fps)
-            #print(f'chunk_ len is {cl}')
+        #print(f'chunk_ len is {cl}')
         # calculate how much to freeze each chunk to achieve correct freeze number my brother in christ 
         quotient, remainder = divmod(N, n)
         chunks_per_vid = [quotient + 1] * remainder + [quotient] * (n - remainder)
-        
+        print(chunks_per_vid)
+        print(n)
+
         ###x testing: chunks_fps=[f'chunk_0{i}' for i in range(n)]
         ###x testing: chunks_fps=[self.utils.path_join(tmp_dir_fp,fp) for fp in chunks_fps]
         # freeze each chunk 
         for i,(chunk,vid) in enumerate(zip(chunks_per_vid,  chunks_fps)):
+            print('freezing',chunk,vid)
             out_fp=self.utils.path_join(tmp_dir_fp,f'freezed_chunk_0{i}.{self.format}')
             self.freeze_frames_linearly2(vid_fp=vid,out_fp=out_fp,nsec=nsec,N=chunk,tmp_dir_fp=tmp_dir_fp)
             #print('warning, copying file to speed up things, ')
@@ -453,6 +446,8 @@ class vidMaker:
         vid_len=self.get_media_len(fp=vid_fp)
         fps=self.utils.get_vid_fps(vid_fp=vid_fp)
         vid_nframes=int(vid_len*fps)
+        print('foobar', vid_len,vid_nframes,fps)
+        
         start_frame=0
         frame_interval=(vid_nframes//(N))
         
@@ -467,9 +462,12 @@ class vidMaker:
             clip, audio_chunk, info = torchvision.io.read_video(vid_fp, start_pts=start_sec, end_pts=end_sec,pts_unit='sec')
             #print(f'clip dur ', clip.shape[0]/fps, fps  )
             clip=self.slowdown_tensor_ending(vid_t=clip[:frame_interval],nsec=nsec,fps=fps)
-            
-            fp=self.dump_tensor(t=clip,fname=f'{str(k)}_vid_.{self.format}',dir_fp=tmp_dir_fp,fps=fps)
-            dumped_fps.append(fp)
+            print(f' clip shape {clip.shape}')
+            l=clip.shape[0]
+            print(l,'l')
+            if l!=0: # not making zero length sloed tensors 
+                fp=self.dump_tensor(t=clip,fname=f'{str(k)}_vid_.{self.format}',dir_fp=tmp_dir_fp,fps=fps)
+                dumped_fps.append(fp)
             start_frame=i
             k+=1
         out=self.concat_streams_ffmpg(fps=dumped_fps,output_fname=out_fp,tmp_dir=tmp_dir_fp)
@@ -479,7 +477,7 @@ class vidMaker:
     def convert_vid(self,vid_fp,tgt_format='mp4'):
         ffmpeg=[f"{self._ffmpeg_path}ffmpeg",'-y']
         out_fp=vid_fp.split('.')[0]+f'.{tgt_format}'
-        l = ffmpeg + ["-i", vid_fp, "-vcodec", "libx264", "-acodec", "aac", out_fp]
+        l = ffmpeg + ["-i", vid_fp, "-vcodec", "libx265", "-acodec", "aac", out_fp]
         self.utils.subprocess_run(l=l,logger=self.logger)
         return out_fp
         

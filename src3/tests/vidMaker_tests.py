@@ -125,44 +125,27 @@ class TestvidMaker(unittest.TestCase):
         fp,_ = self.vm.match_audio_len_to_video_exactly(audio_fp=audio_fp,vid_fp=vid_fp,audio_out_fp=out_fp)
         print(_)
         
-    def test_freeze_frames_linearly_quality(self):
-        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_qual')
-        vids_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_qual','freezed_vids')
-        f='input_short.mp4'
-#        f='freeze_frames_linearly_10m_input.webm'
-        fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
-        #self.vm.convert_vid(vid_fp=fp1,tgt_format='mov')
-        
-        self.vm.media_fp=fp1
-        out_fp=self.vm.utils.path_join('tests','tests_inputs','tmp_qual','out.mp4')
-        tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_qual')
-
-
-        out=self.vm.freeze_frames_linearly2(vid_fp=self.vm.media_fp
-                                        ,out_fp=out_fp
-                                        ,tmp_dir_fp=vids_dir
-                                        ,N=5,nsec=1)
-        
-        print(out)
         
     def test_freeze_frames_linearly(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
         vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
         f='THEY_DISCOVERED_ADVANCE_TINY_HUMANS_LIVING_IN_A_FRIDGE.webm'
-        f='freeze_frames_linearly_1m_input.webm'
-#        f='freeze_frames_linearly_10m_input.webm'
+        f='freeze_frames_linearly_1m_input.mp4'
         fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
         self.vm.media_fp=fp1
-        out_fp=self.vm.utils.path_join('tests','tests_outputs','freeze_frames_lin2.webm')
+        out_fp=self.vm.utils.path_join('tests','tests_inputs','freeze_dir',f'out_{f}')
         tmp_dir=self.vm.utils.path_join('tests','tests_inputs','freeze_dir')
-
 
         out=self.vm.freeze_frames_linearly2(vid_fp=self.vm.media_fp
                                         ,out_fp=out_fp
                                         ,tmp_dir_fp=tmp_dir
-                                        ,N=5,nsec=1)
+                                        ,nsec=2               # duration of each cut 
+                                        ,N=15                 # how many cuts 
+                                        )
         
         print(out)
+        print(self.vm.utils.get_media_len(fp1))
+        print(self.vm.utils.get_media_len(out_fp))
         
         
     def test_concat_vids(self):
@@ -174,22 +157,23 @@ class TestvidMaker(unittest.TestCase):
                             add_pause_sec=1)
         
     def test_freeze_frames_wrapper(self):
-        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
-        vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
-        f='THEY_DISCOVERED_ADVANCE_TINY_HUMANS_LIVING_IN_A_FRIDGE.webm'
-        f='freeze_frames_linearly_1m_input.webm'
-#        f='freeze_frames_linearly_10m_input.webm'
-        fp1=self.vm.utils.path_join(self.vm.tmp_dir,f)
-        self.vm.media_fp=fp1
-        out_fp=self.vm.utils.path_join('tests','tests_outputs','freeze_frames_lin2.webm')
-        tmp_dir=self.vm.utils.path_join('tests','tests_inputs','tmp_dir')
-
-
-        out=self.vm.wrapper_freeze_frames_linearly2(vid_fp=self.vm.media_fp
+        self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')        # input vid dir 
+        vids_dir=self.vm.utils.path_join('tests','tests_inputs','freeze_dir')  # tmp dir 
+        f='freeze_frames_wrapper_input.mov'
+        f='freeze_frames_linearly_1m_input.mp4'
+        vid_fp=self.vm.utils.path_join(self.vm.tmp_dir,f)                      # input video 
+        
+        out_fp=self.vm.utils.path_join(vids_dir,f'out_{f}')                     # output video
+        tmp_dir=self.vm.utils.path_join('tests','tests_inputs','freeze_dir')
+        
+        out=self.vm.wrapper_freeze_frames_linearly2(vid_fp=vid_fp
                                         ,out_fp=out_fp
-                                        ,tmp_dir_fp=tmp_dir
-                                        ,n_chunks=3
-                                        ,N=20,nsec=1)
+                                        ,tmp_dir_fp=tmp_dir   
+                                        ,nsec=5                              # single slowdown len 
+                                        ,duration=30                         # duration of a chunk 
+                                        ,N=4                                 # how many cuts in total 
+                                        )
+        
     def test_cut_vid_in_half(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')
         vids_dir=self.vm.utils.path_join(self.vm.tmp_dir,'vids')
@@ -227,7 +211,7 @@ if __name__ == '__main__':
     t=TestvidMaker()
 #    t.test_cut_vid_ffmpeg()
     #t.test_cut_vid_recurrence()
-    t.test_freeze_frames_linearly_quality()
+    t.test_freeze_frames_wrapper()
     #test_freeze_frames_linearly
 #    t.test_freeze_frames_wrapper()
     print(f'time: {time.time()-tm}')
