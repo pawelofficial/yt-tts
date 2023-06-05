@@ -140,7 +140,8 @@ class TestvidMaker(unittest.TestCase):
                                         ,out_fp=out_fp
                                         ,tmp_dir_fp=tmp_dir
                                         ,nsec=2               # duration of each cut 
-                                        ,N=15                 # how many cuts 
+                                        ,N=6                 # how many cuts 
+                                        ,duration=45
                                         )
         
         print(out)
@@ -171,8 +172,10 @@ class TestvidMaker(unittest.TestCase):
                                         ,tmp_dir_fp=tmp_dir   
                                         ,nsec=5                              # single slowdown len 
                                         ,duration=30                         # duration of a chunk 
-                                        ,N=4                                 # how many cuts in total 
+                                        ,N=10                                # how many cuts in total 
                                         )
+        print(out)
+        input('wait')
         
     def test_cut_vid_in_half(self):
         self.vm.tmp_dir=self.vm.utils.path_join('tests','tests_inputs')

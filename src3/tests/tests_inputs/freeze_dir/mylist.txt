@@ -1,2 +1,0 @@
-file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\freezed_chunk_00.mov'
-file 'c:\\\gh\\\yt-tts\\\src3\\\tests\\\tests_inputs\\\freeze_dir\\freezed_chunk_01.mov'

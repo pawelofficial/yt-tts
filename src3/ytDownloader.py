@@ -69,6 +69,15 @@ class ytDownloader:
         self._logger = self.utils.setup_logger(name=nm,log_file=f'{nm}.log')
 
     # downloads a vid from yt  
+    def get_title(self,vid_url):
+        l=["yt-dlp","--skip-download",vid_url,"--get-title"]
+        returncode, stdout, stderr =self.utils.subprocess_run(l,logger=self.logger) 
+        title=stdout.replace(' ','_').replace('|','') # + f'.{format}' # yt vid extension is webm 
+        title=''.join([c for c in title if c.isalnum() or c in ('_') ])
+        print(stdout)
+        print(returncode)
+        return title
+    
     def download_vid(self,timestamps = None,format='webm' ):
         vid_url=self.ytURL.vid_url
         l=["yt-dlp","--skip-download",vid_url,"--get-title"]
@@ -134,14 +143,14 @@ class ytDownloader:
         
         last_row_d=df.iloc[len(df)-1].to_dict()
         txt=last_row_d[txt_col]
+        print(txt)
         last_words=txt.split(' ')[-n_last_word:]
 
         for w in last_words:
             ratio = fuzz.ratio(w.lower().strip(), keyword_check.lower())
             if ratio > 90: # keyword of your choice is already in last words - no need to add your text 
                 return 
-            else:
-                txt=txt +' ' + s
+        txt=txt +' ' + s
         last_row_d[txt_col]=txt
         df.iloc[len(df)-1]=last_row_d
         return 

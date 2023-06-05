@@ -408,7 +408,7 @@ class vidMaker:
         pass
     
     
-    def wrapper_freeze_frames_linearly2(self,vid_fp,out_fp, nsec=1,freezes_added=10,tmp_dir_fp=None,duration=20,N=2):
+    def wrapper_freeze_frames_linearly2(self,vid_fp,out_fp, nsec=1,tmp_dir_fp=None,duration=20,N=2):
         if tmp_dir_fp is None:
             tmp_dir_fp=self.tmp_dir
         # first splits up original video to smaller chunks so i dont run out of memory in pytorch 
@@ -421,19 +421,23 @@ class vidMaker:
         # calculate how much to freeze each chunk to achieve correct freeze number my brother in christ 
         quotient, remainder = divmod(N, n)
         chunks_per_vid = [quotient + 1] * remainder + [quotient] * (n - remainder)
-        print(chunks_per_vid)
-        print(n)
+        self.utils.log_variable(logger=self.logger,m='chunks_per_vid',c=chunks_per_vid)
 
+        self.utils.clear_dir(dir_path=self.tmp_dir,save_fps=chunks_fps)
+        #chunks_fps=[chunks_fps[0],chunks_fps[1]]
         ###x testing: chunks_fps=[f'chunk_0{i}' for i in range(n)]
         ###x testing: chunks_fps=[self.utils.path_join(tmp_dir_fp,fp) for fp in chunks_fps]
         # freeze each chunk 
+        
         for i,(chunk,vid) in enumerate(zip(chunks_per_vid,  chunks_fps)):
-            print('freezing',chunk,vid)
+            time.sleep(1)
+            self.utils.log_variable(logger=self.logger,m='vids',vids=vid,chunk=chunk)
             out_fp=self.utils.path_join(tmp_dir_fp,f'freezed_chunk_0{i}.{self.format}')
-            self.freeze_frames_linearly2(vid_fp=vid,out_fp=out_fp,nsec=nsec,N=chunk,tmp_dir_fp=tmp_dir_fp)
+            out_fp=self.freeze_frames_linearly2(vid_fp=vid,out_fp=out_fp,nsec=nsec,N=chunk,tmp_dir_fp=tmp_dir_fp)
             #print('warning, copying file to speed up things, ')
             #self.copy_file(vid_fp,out_fp) # this will make output huge, and your scaling huge as well 
             freezed_chunks_fps.append(out_fp)
+
             
 
         # concat chunks into single video
@@ -446,7 +450,6 @@ class vidMaker:
         vid_len=self.get_media_len(fp=vid_fp)
         fps=self.utils.get_vid_fps(vid_fp=vid_fp)
         vid_nframes=int(vid_len*fps)
-        print('foobar', vid_len,vid_nframes,fps)
         
         start_frame=0
         frame_interval=(vid_nframes//(N))
@@ -465,9 +468,12 @@ class vidMaker:
             print(f' clip shape {clip.shape}')
             l=clip.shape[0]
             print(l,'l')
-            if l!=0: # not making zero length sloed tensors 
-                fp=self.dump_tensor(t=clip,fname=f'{str(k)}_vid_.{self.format}',dir_fp=tmp_dir_fp,fps=fps)
-                dumped_fps.append(fp)
+            if l==0: # not making zero length sloed tensors 
+                self.utils.log_variable(logger=self.logger,m='ERROR zero length clip, your duration setting is probably to low',l=l)
+                raise Exception('ERROR zero length clip, your duration setting is probably to low')
+            
+            fp=self.dump_tensor(t=clip,fname=f'{str(k)}_vid_{self.utils.get_cur_ts()}.{self.format}',dir_fp=tmp_dir_fp,fps=fps)
+            dumped_fps.append(fp)
             start_frame=i
             k+=1
         out=self.concat_streams_ffmpg(fps=dumped_fps,output_fname=out_fp,tmp_dir=tmp_dir_fp)

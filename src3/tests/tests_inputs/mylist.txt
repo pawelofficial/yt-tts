@@ -1,2 +1,0 @@
-file 'c:\\\\gh\\\\yt-tts\\\\src3\\\\tests\\\\tests_inputs\\vm_test_speech.wav'
-file 'c:\\\\gh\\\\yt-tts\\\\src3\\\\tests\\\\tests_inputs\\vm_test_input_audio.wav'
