@@ -143,7 +143,6 @@ class ytDownloader:
         
         last_row_d=df.iloc[len(df)-1].to_dict()
         txt=last_row_d[txt_col]
-        print(txt)
         last_words=txt.split(' ')[-n_last_word:]
 
         for w in last_words:

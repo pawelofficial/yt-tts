@@ -420,7 +420,7 @@ class vidMaker:
         #print(f'chunk_ len is {cl}')
         # calculate how much to freeze each chunk to achieve correct freeze number my brother in christ 
         quotient, remainder = divmod(N, n)
-        chunks_per_vid = [quotient + 1] * remainder + [quotient] * (n - remainder)
+        chunks_per_vid = [quotient + 2] * remainder + [quotient] * (n - remainder)
         self.utils.log_variable(logger=self.logger,m='chunks_per_vid',c=chunks_per_vid)
 
         self.utils.clear_dir(dir_path=self.tmp_dir,save_fps=chunks_fps)

@@ -26,7 +26,7 @@ def ytd_wf(ytd,url_,lang='en',tmp_dir_name=None
     if tmp_dir_name is not None:
         ytd.tmp_dir=tmp_dir_name                                                # knob 1 
     else:
-        tmp_dir_name=f'{ytd.utils.get_cur_ts()}'
+        tmp_dir_name=f'{ytd.utils.get_cur_ts()}_spider'
         ytd.tmp_dir=tmp_dir_name
     ytd.url=url_
     
@@ -42,12 +42,12 @@ def ytd_wf(ytd,url_,lang='en',tmp_dir_name=None
         ytd.punctuate_df(input_col='txt',output_col='txt')
     if use_hardcoded_values:
         ytd.subs_df=ytd.utils.read_df(fp=ytd.utils.path_join(ytd.tmp_dir,'subs_df.csv'))  # subs_df 
-        ytd.vid_fp=ytd.utils.path_join(ytd.tmp_dir,'Company_Accidentally_Turns_29999_Out_of_30000_Patients_Into_Zombies_During_a_Clinical_Trial.mov')
+        ytd.vid_fp=ytd.utils.path_join(ytd.tmp_dir,'They_Accidentally_Lock_Themselves_Inside_a_Prison_Cell_During_a_Zombie_Apocalypse.mov')
         
     if convert:
         ytd.vid_fp=ytd.convert_vid(vid_fp=ytd.vid_fp,tgt_format='mov')
     else:
-        ytd.vid_fp=ytd.utils.path_join(ytd.tmp_dir,'Company_Accidentally_Turns_29999_Out_of_30000_Patients_Into_Zombies_During_a_Clinical_Trial.mov')
+        ytd.vid_fp=ytd.utils.path_join(ytd.tmp_dir,'They_Accidentally_Lock_Themselves_Inside_a_Prison_Cell_During_a_Zombie_Apocalypse.mov')
         
     ytd.add_string_to_df()
     ytd.utils.dump_df(df=ytd.subs_df,fp=ytd.tmp_dir,name='subs_df')
@@ -120,8 +120,9 @@ if __name__=='__main__':
 #    urls=['https://www.youtube.com/watch?v=ESwGjkxToiU&ab_channel=MovieRecaps']
   
     
-    urls=['https://www.youtube.com/watch?v=rUByu33vIRs&t=1s&ab_channel=MovieRecaps' # 20230605091216_c
-          ,'https://www.youtube.com/watch?v=HO9ndOtTlW4&ab_channel=MovieRecaps'
+    urls=[
+        #'https://www.youtube.com/watch?v=rUByu33vIRs&t=1s&ab_channel=MovieRecaps' # 20230605091216_c
+          'https://www.youtube.com/watch?v=HO9ndOtTlW4&ab_channel=MovieRecaps'
           ,'https://www.youtube.com/watch?v=pPNwpr8tNMg&t=16s&ab_channel=MovieRecaps'
           ]
 #    urls=['https://www.youtube.com/watch?v=2VWzdIYKwmc&ab_channel=LiftingVault'
@@ -130,13 +131,20 @@ if __name__=='__main__':
 #          ]
     
     #urls=[urls[0]]
-    for url_ in urls:
+    urls=['https://www.youtube.com/watch?v=75nuQP7UYnE&ab_channel=MovieRecaps']
+    urls=['https://www.youtube.com/watch?v=Rp3MGQpMGIw&ab_channel=MovieRecaps']
+    urls=['https://www.youtube.com/watch?v=ntwUgHGVMNw&ab_channel=MovieRecaps'
+          ,'https://www.youtube.com/watch?v=J3ayBBnMG1k&ab_channel=MovieRecaps']
+    urls=['https://www.youtube.com/watch?v=nJnhBBxhzZE&ab_channel=MovieRecaps']
+    urls=['https://www.youtube.com/watch?v=JpuqwfKR66U&ab_channel=EXPLANATION-AVENUE-OliverEnde'
+    ,'https://www.youtube.com/watch?v=JpuqwfKR66U&ab_channel=EXPLANATION-AVENUE-OliverEnde']
+    for u in urls:
         ytd_i=ytd_(utils(), url())
         at_i=atts_(utils())
         vm_i=vm_(utils())
         tm=time.time()
         
-        ytd=ytd_wf(ytd=ytd_i,url_=url_,lang='en-en')
+        ytd=ytd_wf(ytd=ytd_i,url_=u,lang='en-en')
         at=tts_wf(ytd=ytd_i,at=at_i)
 
         vm_wf(ytd=ytd_i,at=at_i,vm=vm_i)
@@ -144,4 +152,4 @@ if __name__=='__main__':
         print(f'time: {time.time()-tm}')
 
         
-        
+        # https://www.youtube.com/watch?v=JpuqwfKR66U&ab_channel=EXPLANATION-AVENUE-OliverEnde
